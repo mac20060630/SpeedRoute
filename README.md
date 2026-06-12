@@ -1,5 +1,5 @@
 <div align="center">
-<img width="1024" alt="GHBanner" src="docs/routeranker_banner.png" />
+<img width="1024" alt="GHBanner" src="docs/speed_route_banner.png" />
 </div>
 
 # speed Route
