@@ -337,6 +337,89 @@ fun DashboardScreen(
                 Text("Rankings", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             }
         }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // --- NEW ADVANCED STATS SECTION ---
+        
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+            Box(modifier = Modifier.weight(1f)) {
+                StatCard(icon = Icons.Default.Pause, iconColor = Color(0xFFB388FF), title = "Stopped Time", value = "${stats.stoppedTimeSeconds / 60}m")
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                StatCard(icon = Icons.Default.Layers, iconColor = Color(0xFF81C784), title = "Total Trips", value = "${stats.totalTrips}")
+            }
+        }
+        
+        WideStatCard(
+            icon = Icons.Default.FlashOn, iconColor = Color(0xFFE53935),
+            title = "Top Speed", value = "${String.format("%.0f", stats.topSpeedKmH)}", unit = "km/h"
+        )
+        
+        WideStatCard(
+            icon = Icons.Default.Timer, iconColor = Color(0xFFE53935),
+            title = "Best 0-100 km/h time", value = if (stats.best0To100TimeSec != null) String.format("%.1f s", stats.best0To100TimeSec) else "-"
+        )
+        
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+            Box(modifier = Modifier.weight(1f)) {
+                StatCard(icon = Icons.Default.ArrowBack, iconColor = Color(0xFF5C6BC0), title = "Left Turns", value = "${stats.leftTurns}")
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                StatCard(icon = Icons.Default.ArrowForward, iconColor = Color(0xFFEF5350), title = "Right Turns", value = "${stats.rightTurns}")
+            }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+            Box(modifier = Modifier.weight(1f)) {
+                StatCard(icon = Icons.Default.PanTool, iconColor = Color(0xFFFF9800), title = "Brake Events", value = "${stats.brakeEvents}")
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                StatCard(icon = Icons.Default.SwapHoriz, iconColor = Color(0xFF66BB6A), title = "Lane Changes", value = "${stats.laneChanges}")
+            }
+        }
+        
+        TurnPreferenceBar(leftTurns = stats.leftTurns, rightTurns = stats.rightTurns)
+        
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+            Box(modifier = Modifier.weight(1f)) {
+                StatCard(icon = Icons.Default.ArrowDownward, iconColor = Color(0xFFEF5350), title = "Max Deceleration", value = "${String.format("%.1f", stats.maxDeceleration)} m/s²")
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                StatCard(icon = Icons.Default.ArrowUpward, iconColor = Color(0xFF66BB6A), title = "Max Acceleration", value = "${String.format("%.1f", stats.maxAcceleration)} m/s²")
+            }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+            Box(modifier = Modifier.weight(1f)) {
+                StatCard(icon = Icons.Default.Refresh, iconColor = Color(0xFFFF9800), title = "Peak G-Force", value = "${String.format("%.2f", stats.peakGForce)} G")
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                StatCard(icon = Icons.Default.Refresh, iconColor = Color(0xFF29B6F6), title = "Top Corner Speed", value = "${String.format("%.0f", stats.topCornerSpeedKmH)} km/h")
+            }
+        }
+        
+        Text("More Stats", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
+        
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+            Box(modifier = Modifier.weight(1f)) {
+                StatCard(icon = Icons.Default.DirectionsCar, iconColor = Color.Gray, title = "Total Trips", value = "${stats.totalTrips}")
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                StatCard(icon = Icons.Default.Stop, iconColor = Color.Gray, title = "Total Stops", value = "${stats.totalStops}")
+            }
+        }
+        
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
+            Box(modifier = Modifier.weight(1f)) {
+                val avgLength = if (stats.totalTrips > 0) stats.allTimeDistanceKm / stats.totalTrips else 0f
+                StatCard(icon = Icons.Default.SwapHoriz, iconColor = Color.Gray, title = "Avg Trip Length", value = "${String.format("%.1f", avgLength)} km")
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                val allTimeMins = stats.totalAllTimeDurationSeconds / 60
+                StatCard(icon = Icons.Default.Schedule, iconColor = Color.Gray, title = "Total Duration", value = "${allTimeMins}m")
+            }
+        }
     }
 }
 
@@ -352,6 +435,65 @@ fun StatCard(icon: androidx.compose.ui.graphics.vector.ImageVector, iconColor: C
             Spacer(modifier = Modifier.height(16.dp))
             Text(title, color = Color.Gray, fontSize = 12.sp)
             Text(value, color = MaterialTheme.colorScheme.onBackground, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun WideStatCard(icon: androidx.compose.ui.graphics.vector.ImageVector, iconColor: Color, title: String, value: String, unit: String = "") {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Icon(icon, contentDescription = null, tint = iconColor)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(title, color = Color.Gray, fontSize = 12.sp)
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(value, color = MaterialTheme.colorScheme.onBackground, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                if (unit.isNotEmpty()) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(unit, color = Color.Gray, fontSize = 14.sp, modifier = Modifier.padding(bottom = 2.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TurnPreferenceBar(leftTurns: Int, rightTurns: Int) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Turn Preference", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            val total = leftTurns + rightTurns
+            val leftPct = if (total > 0) (leftTurns.toFloat() / total) * 100f else 50f
+            val rightPct = if (total > 0) (rightTurns.toFloat() / total) * 100f else 50f
+            
+            Row(modifier = Modifier.fillMaxWidth().height(32.dp).background(Color.Transparent)) {
+                Box(modifier = Modifier.weight(leftPct).fillMaxHeight()
+                    .background(Color(0xFF5C6BC0), RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)),
+                    contentAlignment = Alignment.Center) {
+                    Text("${String.format("%.1f", leftPct)}%", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+                Box(modifier = Modifier.weight(rightPct).fillMaxHeight()
+                    .background(Color(0xFFEF5350), RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)),
+                    contentAlignment = Alignment.Center) {
+                    Text("${String.format("%.1f", rightPct)}%", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Left", color = Color.Gray, fontSize = 12.sp)
+                Text("Right", color = Color.Gray, fontSize = 12.sp)
+            }
         }
     }
 }

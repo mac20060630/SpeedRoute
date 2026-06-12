@@ -17,11 +17,19 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 
-class LocationTrackerService : Service() {
+class LocationTrackerService : Service(), SensorEventListener {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
+    
+    private lateinit var sensorManager: SensorManager
+    private var accelerometer: Sensor? = null
+    private var gyroscope: Sensor? = null
 
     companion object {
         const val ACTION_START = "ACTION_START"
@@ -32,7 +40,14 @@ class LocationTrackerService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        
+        TripManager.init(applicationContext)
+        
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        
+        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
         
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
@@ -73,6 +88,9 @@ class LocationTrackerService : Service() {
                 locationCallback,
                 Looper.getMainLooper()
             )
+            accelerometer?.let { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL) }
+            gyroscope?.let { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL) }
+            
             TripManager.startTracking()
         } catch (e: SecurityException) {
             e.printStackTrace()
@@ -81,6 +99,7 @@ class LocationTrackerService : Service() {
 
     private fun stopTracking() {
         fusedLocationClient.removeLocationUpdates(locationCallback)
+        sensorManager.unregisterListener(this)
         TripManager.stopTracking()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -99,4 +118,10 @@ class LocationTrackerService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+    
+    override fun onSensorChanged(event: SensorEvent?) {
+        event?.let { TripManager.processSensorEvent(it) }
+    }
+
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 }
