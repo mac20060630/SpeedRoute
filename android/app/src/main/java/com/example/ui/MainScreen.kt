@@ -169,7 +169,7 @@ fun SpeedometerScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
             .verticalScroll(androidx.compose.foundation.rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -185,7 +185,7 @@ fun SpeedometerScreen(
                 color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 24.dp, bottom = 32.dp).align(Alignment.Center),
+                modifier = Modifier.padding(top = 8.dp, bottom = 16.dp).align(Alignment.Center),
                 lineHeight = 36.sp,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )

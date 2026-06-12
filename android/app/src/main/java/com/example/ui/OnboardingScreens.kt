@@ -810,7 +810,7 @@ fun DOBScreen(navController: NavController, viewModel: OnboardingViewModel) {
 }
 
 @Composable
-fun TrustScreen(navController: NavController) {
+fun TrustScreen(navController: NavController, viewModel: OnboardingViewModel) {
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp)) {
         AppTopBar(navController, 10)
         Spacer(modifier = Modifier.weight(1f))
@@ -851,8 +851,12 @@ fun TrustScreen(navController: NavController) {
         }
         
         Spacer(modifier = Modifier.weight(1f))
-        ActionButton(text = "Continue to Dashboard", onClick = { navController.navigate("main") {
-            popUpTo("welcome") { inclusive = true }
-        } })
+        ActionButton(text = "Continue to Dashboard", onClick = {
+            viewModel.completeOnboarding {
+                navController.navigate("main") {
+                    popUpTo("welcome") { inclusive = true }
+                }
+            }
+        })
     }
 }

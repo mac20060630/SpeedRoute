@@ -205,6 +205,31 @@ class OnboardingViewModel : ViewModel() {
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { onError(it.message ?: "Failed to send reset email") }
     }
+
+    fun completeOnboarding(onSuccess: () -> Unit) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid != null) {
+            viewModelScope.launch {
+                try {
+                    val db = FirebaseFirestore.getInstance()
+                    val updates = hashMapOf<String, Any>(
+                        "d" to dob,
+                        "vType" to vehicleType,
+                        "vBrand" to vehicleBrand,
+                        "vModel" to vehicleModel,
+                        "country" to country.name,
+                        "speedUnit" to speedUnit
+                    )
+                    db.collection("users").document(uid).update(updates).await()
+                } catch (e: Exception) {
+                    // Ignore errors if update fails, we can still proceed
+                }
+                onSuccess()
+            }
+        } else {
+            onSuccess()
+        }
+    }
 }
 
 data class Country(val name: String, val flag: String)

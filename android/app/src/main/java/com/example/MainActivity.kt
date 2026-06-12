@@ -90,14 +90,18 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize(), containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
                     val navController = rememberNavController()
                     val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
-                    val startDest = if (auth.currentUser != null) {
+                    val startDest = if (auth.currentUser != null) "main" else "welcome"
+                    
+                    if (auth.currentUser != null) {
                         LaunchedEffect(Unit) { onboardingViewModel.fetchUserProfile() }
-                        "main"
-                    } else "welcome"
+                    }
+                    
                     NavHost(
                         navController = navController,
                         startDestination = startDest,
-                        modifier = Modifier.padding(innerPadding)
+                        modifier = Modifier
+                            .padding(innerPadding)
+                            .consumeWindowInsets(innerPadding)
                     ) {
                         composable("welcome") { WelcomeScreen(navController) }
                         composable("login") { com.example.ui.LoginScreen(navController, onboardingViewModel) }
@@ -110,7 +114,7 @@ class MainActivity : ComponentActivity() {
                         composable("add_vehicles") { AddVehiclesScreen(navController, onboardingViewModel) }
                         composable("speed_camera") { SpeedCameraScreen(navController, onboardingViewModel) }
                         composable("dob") { DOBScreen(navController, onboardingViewModel) }
-                        composable("trust") { TrustScreen(navController) }
+                        composable("trust") { TrustScreen(navController, onboardingViewModel) }
                         composable("main") {
                             com.example.ui.MainScreen(
                                 mainNavController = navController,
