@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "525374452313",
+    "project_id": "triprank-in",
+    "storage_bucket": "triprank-in.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:525374452313:android:ec4375cf45c93947abf748",
+        "android_client_info": {
+          "package_name": "Triprank.in"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8iP5xsUmq5yzNCT3C1Zj-qJy09Nynhw4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
