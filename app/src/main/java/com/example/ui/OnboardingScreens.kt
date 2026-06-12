@@ -238,11 +238,11 @@ fun LocationPermissionScreen(navController: NavController, viewModel: Onboarding
 
 @Composable
 fun VehicleTypeScreen(navController: NavController, viewModel: OnboardingViewModel) {
-    Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(24.dp)) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp)) {
         AppTopBar(navController, 4)
         Spacer(modifier = Modifier.height(32.dp))
         
-        Text("What do you drive?", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text("What do you drive?", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(16.dp))
         Text("Select your primary vehicle type", color = Color.Gray, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         
@@ -287,43 +287,52 @@ fun VehicleTypeScreen(navController: NavController, viewModel: OnboardingViewMod
 @Composable
 fun VehicleBrandScreen(navController: NavController, viewModel: OnboardingViewModel) {
     val brands = if (viewModel.vehicleType == "Car") VehicleBrands.carBrands else VehicleBrands.bikeBrands
-    var expanded by remember { mutableStateOf(false) }
+    var expandedBrand by remember { mutableStateOf(false) }
+    var expandedModel by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(24.dp)) {
+    val models = if (viewModel.vehicleType == "Car") {
+        VehicleBrands.carModels[if (viewModel.showOtherBrand) "Other" else viewModel.vehicleBrand] ?: listOf("Other")
+    } else {
+        VehicleBrands.bikeModels[if (viewModel.showOtherBrand) "Other" else viewModel.vehicleBrand] ?: listOf("Other")
+    }
+
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp)) {
         AppTopBar(navController, 5)
         Spacer(modifier = Modifier.height(32.dp))
         
-        Text("Choose your main ride", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text("Choose your main ride", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(16.dp))
         Text("Select the ${viewModel.vehicleType.lowercase()} you ride the most", color = Color.Gray, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         
         Spacer(modifier = Modifier.height(32.dp))
+        
+        // Brand Dropdown
         ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded }
+            expanded = expandedBrand,
+            onExpandedChange = { expandedBrand = !expandedBrand }
         ) {
             OutlinedTextField(
                 value = if (viewModel.showOtherBrand) "Other" else viewModel.vehicleBrand,
                 onValueChange = {},
                 readOnly = true,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedBrand) },
                 modifier = Modifier.menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFF1C1C1E),
-                    unfocusedContainerColor = Color(0xFF1C1C1E),
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
                     focusedBorderColor = Color.Transparent,
                     unfocusedBorderColor = Color.Transparent
                 )
             )
             ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
+                expanded = expandedBrand,
+                onDismissRequest = { expandedBrand = false }
             ) {
                 brands.forEach { brand ->
                     DropdownMenuItem(
-                        text = { Text(brand, color = Color.Black) },
+                        text = { Text(brand, color = MaterialTheme.colorScheme.onSurface) },
                         onClick = {
                             if (brand == "Other") {
                                 viewModel.showOtherBrand = true
@@ -332,7 +341,12 @@ fun VehicleBrandScreen(navController: NavController, viewModel: OnboardingViewMo
                                 viewModel.showOtherBrand = false
                                 viewModel.vehicleBrand = brand
                             }
-                            expanded = false
+                            
+                            // Reset model when brand changes
+                            viewModel.showOtherModel = false
+                            viewModel.vehicleModel = ""
+                            
+                            expandedBrand = false
                         }
                     )
                 }
@@ -340,6 +354,8 @@ fun VehicleBrandScreen(navController: NavController, viewModel: OnboardingViewMo
         }
         
         Spacer(modifier = Modifier.height(16.dp))
+        
+        // Custom Brand Input
         if (viewModel.showOtherBrand) {
             OutlinedTextField(
                 value = viewModel.vehicleBrand,
@@ -347,29 +363,75 @@ fun VehicleBrandScreen(navController: NavController, viewModel: OnboardingViewMo
                 placeholder = { Text("Enter brand") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFF1C1C1E),
-                    unfocusedContainerColor = Color(0xFF1C1C1E),
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                 )
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        OutlinedTextField(
-            value = viewModel.vehicleModel,
-            onValueChange = { viewModel.vehicleModel = it },
-            placeholder = { Text("Model (e.g. Discover 135)") },
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFF1C1C1E),
-                unfocusedContainerColor = Color(0xFF1C1C1E),
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent
+        // Model Dropdown
+        ExposedDropdownMenuBox(
+            expanded = expandedModel,
+            onExpandedChange = { expandedModel = !expandedModel }
+        ) {
+            OutlinedTextField(
+                value = if (viewModel.showOtherModel) "Other" else viewModel.vehicleModel,
+                onValueChange = {},
+                readOnly = true,
+                placeholder = { Text("Select Model") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedModel) },
+                modifier = Modifier.menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent
+                )
             )
-        )
+            ExposedDropdownMenu(
+                expanded = expandedModel,
+                onDismissRequest = { expandedModel = false }
+            ) {
+                models.forEach { model ->
+                    DropdownMenuItem(
+                        text = { Text(model, color = MaterialTheme.colorScheme.onSurface) },
+                        onClick = {
+                            if (model == "Other") {
+                                viewModel.showOtherModel = true
+                                viewModel.vehicleModel = ""
+                            } else {
+                                viewModel.showOtherModel = false
+                                viewModel.vehicleModel = model
+                            }
+                            expandedModel = false
+                        }
+                    )
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Custom Model Input
+        if (viewModel.showOtherModel || (viewModel.showOtherBrand && viewModel.vehicleModel.isEmpty())) {
+            OutlinedTextField(
+                value = viewModel.vehicleModel,
+                onValueChange = { viewModel.vehicleModel = it },
+                placeholder = { Text("Enter model") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+                )
+            )
+        }
         
         Spacer(modifier = Modifier.weight(1f))
         ActionButton(text = "Continue", onClick = { navController.navigate("add_vehicles") })
@@ -378,11 +440,11 @@ fun VehicleBrandScreen(navController: NavController, viewModel: OnboardingViewMo
 
 @Composable
 fun AddVehiclesScreen(navController: NavController, viewModel: OnboardingViewModel) {
-    Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(24.dp)) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp)) {
         AppTopBar(navController, 6)
         Spacer(modifier = Modifier.height(32.dp))
         
-        Text("Add more vehicles?", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text("Add more vehicles?", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(16.dp))
         Text("You can add other vehicles you drive", color = Color.Gray, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         
@@ -390,15 +452,15 @@ fun AddVehiclesScreen(navController: NavController, viewModel: OnboardingViewMod
         // Selected Vehicle Card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             shape = RoundedCornerShape(16.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF5FC9C9))
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
         ) {
             Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(if (viewModel.vehicleType == "Car") Icons.Default.DirectionsCar else Icons.Default.TwoWheeler, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
+                Icon(if (viewModel.vehicleType == "Car") Icons.Default.DirectionsCar else Icons.Default.TwoWheeler, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(32.dp))
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
-                    Text("${viewModel.vehicleBrand} ${viewModel.vehicleModel}", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("${viewModel.vehicleBrand} ${viewModel.vehicleModel}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                     Text("Primary vehicle", color = Color.Gray, fontSize = 12.sp)
                 }
             }
@@ -409,13 +471,13 @@ fun AddVehiclesScreen(navController: NavController, viewModel: OnboardingViewMod
         // Add Button
         Card(
             modifier = Modifier.fillMaxWidth().clickable { },
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             shape = RoundedCornerShape(16.dp),
         ) {
             Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.AddCircleOutline, contentDescription = null, tint = Color(0xFF5FC9C9))
+                Icon(Icons.Default.AddCircleOutline, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Add another vehicle", color = Color(0xFF5FC9C9), fontWeight = FontWeight.Bold)
+                Text("Add another vehicle", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             }
         }
         
@@ -426,16 +488,16 @@ fun AddVehiclesScreen(navController: NavController, viewModel: OnboardingViewMod
 
 @Composable
 fun SpeedCameraScreen(navController: NavController, viewModel: OnboardingViewModel) {
-    Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(24.dp)) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp)) {
         AppTopBar(navController, 7)
         Spacer(modifier = Modifier.height(32.dp))
         
-        Text("Speed Camera Alerts", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text("Speed Camera Alerts", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(16.dp))
         Text("Get notified before approaching speed cameras while driving.", color = Color.Gray, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         
         Spacer(modifier = Modifier.weight(1f))
-        Text("Enable speed camera detection?", color = Color.White, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text("Enable speed camera detection?", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(16.dp))
         
         val isEnabled = viewModel.enableSpeedCameras == true
@@ -466,11 +528,11 @@ fun SpeedCameraScreen(navController: NavController, viewModel: OnboardingViewMod
 
 @Composable
 fun UsernameScreen(navController: NavController, viewModel: OnboardingViewModel) {
-    Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(24.dp)) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp)) {
         AppTopBar(navController, 8)
         Spacer(modifier = Modifier.height(32.dp))
         
-        Text("Choose your username", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text("Choose your username", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(16.dp))
         Text("This is how you'll appear on the leaderboards", color = Color.Gray, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         
@@ -617,11 +679,11 @@ fun WheelDatePicker(
 
 @Composable
 fun DOBScreen(navController: NavController, viewModel: OnboardingViewModel) {
-    Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(24.dp)) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp)) {
         AppTopBar(navController, 9)
         Spacer(modifier = Modifier.height(32.dp))
         
-        Text("When were you born?", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text("When were you born?", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         
         Spacer(modifier = Modifier.weight(1f))
         
@@ -634,7 +696,7 @@ fun DOBScreen(navController: NavController, viewModel: OnboardingViewModel) {
 
 @Composable
 fun TrustScreen(navController: NavController) {
-    Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(24.dp)) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp)) {
         AppTopBar(navController, 10)
         Spacer(modifier = Modifier.weight(1f))
         
@@ -644,7 +706,7 @@ fun TrustScreen(navController: NavController) {
         }
         
         Spacer(modifier = Modifier.height(32.dp))
-        Text("Thank you for trusting us", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text("Thank you for trusting us", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(32.dp))
         
         Card(
