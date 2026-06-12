@@ -573,7 +573,9 @@ fun WheelDatePicker(
 
     var selectedMonth by remember { mutableStateOf(months[5]) }
     var selectedDay by remember { mutableStateOf(days[11]) }
-    var selectedYear by remember { mutableStateOf(years[currentYear - 2008]) }
+    // Default to year 2000 for DOB, clamped to valid range
+    val defaultYearIndex = (currentYear - 2000).coerceIn(0, years.size - 1)
+    var selectedYear by remember { mutableStateOf(years[defaultYearIndex]) }
 
     LaunchedEffect(selectedMonth, selectedDay, selectedYear) {
         onDateSelected("$selectedMonth $selectedDay, $selectedYear")
@@ -594,19 +596,19 @@ fun WheelDatePicker(
             WheelPicker(
                 items = months,
                 initialIndex = 5,
-                onItemSelected = { selectedMonth = months[it] },
+                onItemSelected = { if (it in months.indices) selectedMonth = months[it] },
                 modifier = Modifier.weight(1.5f)
             )
             WheelPicker(
                 items = days,
                 initialIndex = 11,
-                onItemSelected = { selectedDay = days[it] },
+                onItemSelected = { if (it in days.indices) selectedDay = days[it] },
                 modifier = Modifier.weight(1f)
             )
             WheelPicker(
                 items = years,
-                initialIndex = currentYear - 2008,
-                onItemSelected = { selectedYear = years[it] },
+                initialIndex = defaultYearIndex,
+                onItemSelected = { if (it in years.indices) selectedYear = years[it] },
                 modifier = Modifier.weight(1f)
             )
         }

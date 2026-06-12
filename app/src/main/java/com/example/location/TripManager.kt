@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.location.Location
+import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,6 +44,8 @@ data class TripStats(
 )
 
 object TripManager {
+    private const val TAG = "TripManager"
+    
     private val _stats = MutableStateFlow(TripStats())
     val stats: StateFlow<TripStats> = _stats.asStateFlow()
 
@@ -64,16 +67,22 @@ object TripManager {
     private var lastTurnDirection: Int = 0 // 1 left, -1 right
     private var lastTurnTime: Long = 0
     
-    // Low pass filter
+    // Low pass filter for accelerometer
     private var gravity = FloatArray(3)
     private var linearAcceleration = FloatArray(3)
+    private var gravityInitialized = false
     
     private var sessionTotalStops = 0
+    
+    // Track previous speed for better acceleration detection
+    private var previousSpeedKmH: Float = 0f
+    private var lastSpeedTime: Long = 0
 
     fun init(context: Context) {
         if (prefs == null) {
             prefs = context.getSharedPreferences("TripStatsPrefs", Context.MODE_PRIVATE)
             loadPersistentStats()
+            Log.d(TAG, "TripManager initialized")
         }
     }
 
@@ -87,6 +96,7 @@ object TripManager {
                 best0To100TimeSec = if (p.contains("best0100")) p.getFloat("best0100", 0f) else null
             )
         }
+        Log.d(TAG, "Loaded persistent stats: trips=${_stats.value.totalTrips}, allTimeDist=${_stats.value.allTimeDistanceKm}")
     }
 
     private fun savePersistentStats(current: TripStats) {
@@ -103,6 +113,7 @@ object TripManager {
     }
 
     fun startTracking() {
+        Log.d(TAG, "Starting tracking session")
         startTime = System.currentTimeMillis()
         lastLocation = null
         lastTime = startTime
@@ -110,13 +121,18 @@ object TripManager {
         stoppedTimeAccumulator = 0
         isCurrentlyStopped = true
         sessionTotalStops = 0
+        previousSpeedKmH = 0f
+        lastSpeedTime = 0
         
         turnAccumulatedZ = 0f
         isTurning = false
         lastGyroTime = 0
         lastTurnTime = 0
+        lastTurnDirection = 0
         gravity = FloatArray(3)
         linearAcceleration = FloatArray(3)
+        gravityInitialized = false
+        currentAccel = 0f
         
         _stats.update {
             it.copy(
@@ -134,6 +150,7 @@ object TripManager {
                 rightTurns = 0,
                 brakeEvents = 0,
                 laneChanges = 0,
+                totalStops = 0,
                 totalTrips = it.totalTrips + 1
             )
         }
@@ -141,17 +158,31 @@ object TripManager {
     }
 
     fun stopTracking() {
+        Log.d(TAG, "Stopping tracking session")
         val current = _stats.value
         _stats.update { it.copy(isTracking = false, currentSpeedKmH = 0f) }
-        savePersistentStats(current)
+        savePersistentStats(current.copy(
+            totalAllTimeDurationSeconds = current.totalAllTimeDurationSeconds,
+            allTimeDistanceKm = current.allTimeDistanceKm
+        ))
     }
 
     fun processLocation(location: Location) {
-        if (!_stats.value.isTracking) return
+        if (!_stats.value.isTracking) {
+            // Even when not tracking, update current location for map display
+            _stats.update { it.copy(
+                currentLat = location.latitude,
+                currentLng = location.longitude,
+                currentAltitude = location.altitude
+            ) }
+            return
+        }
 
-        val speedMs = if (location.hasSpeed()) location.speed else 0f
+        val speedMs = if (location.hasSpeed() && location.speed >= 0f) location.speed else 0f
         val speedKmh = speedMs * 3.6f
         val currentTime = System.currentTimeMillis()
+
+        Log.d(TAG, "Processing location: speed=${speedKmh}km/h, lat=${location.latitude}, lng=${location.longitude}, hasSpeed=${location.hasSpeed()}")
 
         _stats.update { current ->
             var newTopSpeed = current.topSpeedKmH
@@ -164,6 +195,7 @@ object TripManager {
 
             if (speedKmh > newTopSpeed) {
                 newTopSpeed = speedKmh
+                Log.d(TAG, "New top speed: ${newTopSpeed} km/h")
             }
             if (isTurning && speedKmh > newTopCorner) {
                 newTopCorner = speedKmh
@@ -173,6 +205,7 @@ object TripManager {
                 if (!isCurrentlyStopped) {
                     isCurrentlyStopped = true
                     sessionTotalStops++
+                    Log.d(TAG, "Vehicle stopped. Total stops: $sessionTotalStops")
                 }
                 newStoppedTime += (currentTime - lastTime)
             } else {
@@ -182,20 +215,27 @@ object TripManager {
 
             if (lastLocation != null) {
                 val distanceMeters = location.distanceTo(lastLocation!!)
-                newDistance += distanceMeters / 1000f
-                newAllTimeDist += distanceMeters / 1000f
+                // Filter out unrealistic distance jumps (GPS noise)
+                if (distanceMeters < 500f) { // Max 500m between 1-second updates = 1800 km/h
+                    newDistance += distanceMeters / 1000f
+                    newAllTimeDist += distanceMeters / 1000f
+                }
             }
             
-            // basic 0-100 logic
+            // 0-100 logic
             if (speedKmh < 1f) {
                 speed0StartTime = currentTime
             } else if (speedKmh >= 100f && speed0StartTime != null) {
                 val timeTo100 = (currentTime - speed0StartTime!!) / 1000f
-                if (newBest0100 == null || timeTo100 < newBest0100) {
+                if (timeTo100 > 0.5f && (newBest0100 == null || timeTo100 < newBest0100)) {
                     newBest0100 = timeTo100
+                    Log.d(TAG, "New best 0-100: ${newBest0100}s")
                 }
                 speed0StartTime = null
             }
+            
+            previousSpeedKmH = speedKmh
+            lastSpeedTime = currentTime
 
             current.copy(
                 currentSpeedKmH = speedKmh,
@@ -223,18 +263,31 @@ object TripManager {
         
         when (event.sensor.type) {
             Sensor.TYPE_ACCELEROMETER -> {
-                val alpha = 0.8f
-                gravity[0] = alpha * gravity[0] + (1 - alpha) * event.values[0]
-                gravity[1] = alpha * gravity[1] + (1 - alpha) * event.values[1]
-                gravity[2] = alpha * gravity[2] + (1 - alpha) * event.values[2]
+                // Low-pass filter to isolate gravity
+                val alpha = if (gravityInitialized) 0.8f else 0f
+                if (!gravityInitialized) {
+                    gravity[0] = event.values[0]
+                    gravity[1] = event.values[1]
+                    gravity[2] = event.values[2]
+                    gravityInitialized = true
+                } else {
+                    gravity[0] = alpha * gravity[0] + (1 - alpha) * event.values[0]
+                    gravity[1] = alpha * gravity[1] + (1 - alpha) * event.values[1]
+                    gravity[2] = alpha * gravity[2] + (1 - alpha) * event.values[2]
+                }
 
                 linearAcceleration[0] = event.values[0] - gravity[0]
                 linearAcceleration[1] = event.values[1] - gravity[1]
                 linearAcceleration[2] = event.values[2] - gravity[2]
 
-                val accelMagnitude = sqrt(linearAcceleration[0]*linearAcceleration[0] + linearAcceleration[1]*linearAcceleration[1] + linearAcceleration[2]*linearAcceleration[2])
+                val accelMagnitude = sqrt(
+                    linearAcceleration[0] * linearAcceleration[0] +
+                    linearAcceleration[1] * linearAcceleration[1] +
+                    linearAcceleration[2] * linearAcceleration[2]
+                )
                 val gForce = accelMagnitude / 9.81f
                 
+                // Longitudinal acceleration (Y axis when phone is mounted vertically)
                 val longitudinalAccel = linearAcceleration[1]
 
                 _stats.update { current ->
@@ -248,8 +301,10 @@ object TripManager {
                     if (longitudinalAccel > nMaxAccel) nMaxAccel = longitudinalAccel
                     if (longitudinalAccel < nMaxDecel) nMaxDecel = longitudinalAccel
                     
+                    // Brake event: sudden strong deceleration
                     if (longitudinalAccel < -3.0f && currentAccel >= -3.0f) {
                         nBrakes++
+                        Log.d(TAG, "Brake event detected! Total: $nBrakes, accel: $longitudinalAccel")
                     }
 
                     currentAccel = longitudinalAccel
@@ -263,43 +318,51 @@ object TripManager {
                 }
             }
             Sensor.TYPE_GYROSCOPE -> {
-                val zRotation = event.values[2] // Z axis is yaw
+                val zRotation = event.values[2] // Z axis is yaw (steering turns)
                 val currentTime = System.currentTimeMillis()
                 
                 if (lastGyroTime != 0L) {
                     val dt = (currentTime - lastGyroTime) / 1000f
-                    turnAccumulatedZ += zRotation * dt
                     
-                    if (abs(turnAccumulatedZ) > 0.8f) { // ~45 deg
-                        isTurning = true
-                        val thisTurnDirection = if (turnAccumulatedZ > 0) 1 else -1 // 1=left, -1=right
+                    // Avoid processing stale data
+                    if (dt < 1.0f) {
+                        turnAccumulatedZ += zRotation * dt
                         
-                        _stats.update { current ->
-                            var nLeft = current.leftTurns
-                            var nRight = current.rightTurns
-                            var nLanes = current.laneChanges
+                        // Threshold: ~45 degrees accumulated rotation indicates a turn
+                        if (abs(turnAccumulatedZ) > 0.8f) {
+                            isTurning = true
+                            val thisTurnDirection = if (turnAccumulatedZ > 0) 1 else -1 // 1=left, -1=right
                             
-                            if (thisTurnDirection == 1) { 
-                                nLeft++
-                            } else {
-                                nRight++
-                            }
-                            
-                            // Simple lane change heuristic: opposing turns within 3 seconds
-                            if (lastTurnDirection != 0 && lastTurnDirection != thisTurnDirection) {
-                                if (currentTime - lastTurnTime < 3000) {
-                                    nLanes++
+                            _stats.update { current ->
+                                var nLeft = current.leftTurns
+                                var nRight = current.rightTurns
+                                var nLanes = current.laneChanges
+                                
+                                if (thisTurnDirection == 1) { 
+                                    nLeft++
+                                    Log.d(TAG, "Left turn detected! Total: $nLeft")
+                                } else {
+                                    nRight++
+                                    Log.d(TAG, "Right turn detected! Total: $nRight")
                                 }
+                                
+                                // Lane change heuristic: opposing turns within 3 seconds
+                                if (lastTurnDirection != 0 && lastTurnDirection != thisTurnDirection) {
+                                    if (currentTime - lastTurnTime < 3000) {
+                                        nLanes++
+                                        Log.d(TAG, "Lane change detected! Total: $nLanes")
+                                    }
+                                }
+                                
+                                turnAccumulatedZ = 0f
+                                lastTurnDirection = thisTurnDirection
+                                lastTurnTime = currentTime
+                                
+                                current.copy(leftTurns = nLeft, rightTurns = nRight, laneChanges = nLanes)
                             }
-                            
-                            turnAccumulatedZ = 0f
-                            lastTurnDirection = thisTurnDirection
-                            lastTurnTime = currentTime
-                            
-                            current.copy(leftTurns = nLeft, rightTurns = nRight, laneChanges = nLanes)
+                        } else if (abs(zRotation) < 0.1f) {
+                            isTurning = false
                         }
-                    } else if (abs(zRotation) < 0.1f) {
-                        isTurning = false
                     }
                 }
                 lastGyroTime = currentTime

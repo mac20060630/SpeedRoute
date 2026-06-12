@@ -102,7 +102,8 @@ fun MainScreen(
             composable("track") {
                 SpeedometerScreen(
                     onStartTracking = onStartTracking,
-                    onStopTracking = onStopTracking
+                    onStopTracking = onStopTracking,
+                    viewModel = viewModel
                 )
             }
             composable("stats") {
@@ -121,7 +122,8 @@ fun MainScreen(
 @Composable
 fun SpeedometerScreen(
     onStartTracking: () -> Unit,
-    onStopTracking: () -> Unit
+    onStopTracking: () -> Unit,
+    viewModel: OnboardingViewModel
 ) {
     val permissions = mutableListOf(
         Manifest.permission.ACCESS_FINE_LOCATION,
@@ -134,10 +136,19 @@ fun SpeedometerScreen(
     val permissionsState = rememberMultiplePermissionsState(permissions = permissions)
     
     LaunchedEffect(Unit) {
-        permissionsState.launchMultiplePermissionRequest()
+        if (!permissionsState.allPermissionsGranted) {
+            permissionsState.launchMultiplePermissionRequest()
+        }
     }
 
     val stats by TripManager.stats.collectAsState()
+    
+    // Convert speed based on user's unit preference
+    val displaySpeed = if (viewModel.speedUnit == "mph") stats.currentSpeedKmH * 0.621371f else stats.currentSpeedKmH
+    val displayTopSpeed = if (viewModel.speedUnit == "mph") stats.topSpeedKmH * 0.621371f else stats.topSpeedKmH
+    val displayDistance = if (viewModel.speedUnit == "mph") stats.totalDistanceKm * 0.621371f else stats.totalDistanceKm
+    val distUnit = if (viewModel.speedUnit == "mph") "mi" else "km"
+    val speedUnit = viewModel.speedUnit
     
     Column(
         modifier = Modifier
@@ -163,8 +174,8 @@ fun SpeedometerScreen(
                 .padding(16.dp),
             contentAlignment = Alignment.Center
         ) {
-            val speed = stats.currentSpeedKmH
-            val maxSpeed = 240f
+            val speed = displaySpeed
+            val maxSpeed = if (viewModel.speedUnit == "mph") 150f else 240f
             val sweepAngle = 240f
             val startAngle = 150f
             val progressAngle = (speed / maxSpeed).coerceIn(0f, 1f) * sweepAngle
@@ -187,7 +198,7 @@ fun SpeedometerScreen(
                 
                 // Draw progress arc
                 drawArc(
-                    color = Color(0xFF4DD0E1), // Cyan color from screenshot
+                    color = Color(0xFF4DD0E1),
                     startAngle = startAngle,
                     sweepAngle = progressAngle,
                     useCenter = false,
@@ -225,7 +236,7 @@ fun SpeedometerScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "km/h",
+                    text = speedUnit,
                     color = Color(0xFF4DD0E1),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
@@ -237,21 +248,24 @@ fun SpeedometerScreen(
         
         // Stats Grid
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-            val avgSpeed = if (stats.durationSeconds > 0) stats.totalDistanceKm / (stats.durationSeconds / 3600f) else 0f
+            val avgSpeed = if (stats.durationSeconds > 0) {
+                val rawAvg = stats.totalDistanceKm / (stats.durationSeconds / 3600f)
+                if (viewModel.speedUnit == "mph") rawAvg * 0.621371f else rawAvg
+            } else 0f
             
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Avg Speed", color = Color.Gray, fontSize = 12.sp)
                     Row(verticalAlignment = Alignment.Bottom) {
-                        Text("${String.format("%.0f", avgSpeed)}", color = MaterialTheme.colorScheme.onBackground, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                        Text(" km/h", color = Color(0xFF4DD0E1), fontSize = 14.sp, modifier = Modifier.padding(bottom = 2.dp))
+                        Text(String.format("%.0f", avgSpeed), color = MaterialTheme.colorScheme.onBackground, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                        Text(" $speedUnit", color = Color(0xFF4DD0E1), fontSize = 14.sp, modifier = Modifier.padding(bottom = 2.dp))
                     }
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Top Speed", color = Color.Gray, fontSize = 12.sp)
                     Row(verticalAlignment = Alignment.Bottom) {
-                        Text("${String.format("%.0f", stats.topSpeedKmH)}", color = MaterialTheme.colorScheme.onBackground, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                        Text(" km/h", color = Color(0xFF4DD0E1), fontSize = 14.sp, modifier = Modifier.padding(bottom = 2.dp))
+                        Text(String.format("%.0f", displayTopSpeed), color = MaterialTheme.colorScheme.onBackground, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                        Text(" $speedUnit", color = Color(0xFF4DD0E1), fontSize = 14.sp, modifier = Modifier.padding(bottom = 2.dp))
                     }
                 }
             }
@@ -262,14 +276,14 @@ fun SpeedometerScreen(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Distance", color = Color.Gray, fontSize = 12.sp)
                     Row(verticalAlignment = Alignment.Bottom) {
-                        Text("${String.format("%.2f", stats.totalDistanceKm)}", color = MaterialTheme.colorScheme.onBackground, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                        Text(" km", color = Color.Gray, fontSize = 14.sp, modifier = Modifier.padding(bottom = 2.dp))
+                        Text(String.format("%.2f", displayDistance), color = MaterialTheme.colorScheme.onBackground, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                        Text(" $distUnit", color = Color.Gray, fontSize = 14.sp, modifier = Modifier.padding(bottom = 2.dp))
                     }
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Altitude", color = Color.Gray, fontSize = 12.sp)
                     Row(verticalAlignment = Alignment.Bottom) {
-                        Text("${String.format("%.0f", stats.currentAltitude)}", color = MaterialTheme.colorScheme.onBackground, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                        Text(String.format("%.0f", stats.currentAltitude), color = MaterialTheme.colorScheme.onBackground, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                         Text(" m", color = Color.Gray, fontSize = 14.sp, modifier = Modifier.padding(bottom = 2.dp))
                     }
                 }
@@ -294,6 +308,16 @@ fun SpeedometerScreen(
         }
         
         Spacer(modifier = Modifier.height(24.dp))
+        
+        // Permission status message
+        if (!permissionsState.allPermissionsGranted) {
+            Text(
+                text = "⚠️ Location permission required for tracking",
+                color = Color(0xFFFFB74D),
+                fontSize = 14.sp,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
         
         Button(
             onClick = {

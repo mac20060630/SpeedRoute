@@ -1,7 +1,6 @@
 package com.example
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -10,8 +9,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,8 +26,6 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.compose.ui.viewinterop.AndroidView
 
 import androidx.navigation.NavController
@@ -205,53 +200,55 @@ fun DetailedStatsScreen(
                 .height(300.dp)
                 .padding(bottom = 16.dp)
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                AndroidView(
-                    modifier = Modifier.fillMaxSize(),
-                    factory = { context ->
-                        MapView(context).apply {
-                            setTileSource(TileSourceFactory.MAPNIK)
-                            setMultiTouchControls(false)
-                            zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
-                            controller.setZoom(15.0)
-                        }
-                    },
-                    update = { mapView ->
-                        if (stats.currentLat != null && stats.currentLng != null) {
-                            val geoPoint = GeoPoint(stats.currentLat!!, stats.currentLng!!)
-                            if (mapView.overlays.isEmpty() || stats.totalDistanceKm == 0f) {
-                                mapView.overlays.clear()
-                                val marker = Marker(mapView)
-                                marker.position = geoPoint
-                                marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                mapView.overlays.add(marker)
-                                
-                                val polyline = Polyline()
-                                polyline.outlinePaint.color = android.graphics.Color.parseColor("#5FC9C9")
-                                polyline.outlinePaint.strokeWidth = 10f
-                                polyline.addPoint(geoPoint)
-                                mapView.overlays.add(polyline)
-                                
-                                mapView.controller.setCenter(geoPoint)
-                            } else {
-                                val marker = mapView.overlays.find { it is Marker } as? Marker
-                                val polyline = mapView.overlays.find { it is Polyline } as? Polyline
-                                
-                                marker?.position = geoPoint
-                                polyline?.addPoint(geoPoint)
-                                mapView.controller.animateTo(geoPoint)
-                            }
-                            mapView.invalidate()
-                        }
-                        if (!stats.isTracking && stats.totalDistanceKm == 0f) {
-                             mapView.overlays.clear()
-                             mapView.invalidate()
+            AndroidView(
+                modifier = Modifier.fillMaxSize(),
+                factory = { ctx ->
+                    MapView(ctx).apply {
+                        setTileSource(TileSourceFactory.MAPNIK)
+                        setMultiTouchControls(true)
+                        zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
+                        controller.setZoom(15.0)
+                        // Request that the parent does not intercept touch events on the map
+                        setOnTouchListener { v, event ->
+                            v.parent?.requestDisallowInterceptTouchEvent(true)
+                            false
                         }
                     }
-                )
-                // This transparent spacer captures all touches, ensuring the parent column can scroll securely
-                Spacer(modifier = Modifier.fillMaxSize().background(Color.Transparent))
-            }
+                },
+                update = { mapView ->
+                    if (stats.currentLat != null && stats.currentLng != null) {
+                        val geoPoint = GeoPoint(stats.currentLat!!, stats.currentLng!!)
+                        if (mapView.overlays.isEmpty() || stats.totalDistanceKm == 0f) {
+                            mapView.overlays.clear()
+                            val marker = Marker(mapView)
+                            marker.position = geoPoint
+                            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            marker.title = "Current Location"
+                            mapView.overlays.add(marker)
+
+                            val polyline = Polyline()
+                            polyline.outlinePaint.color = android.graphics.Color.parseColor("#5FC9C9")
+                            polyline.outlinePaint.strokeWidth = 10f
+                            polyline.addPoint(geoPoint)
+                            mapView.overlays.add(polyline)
+
+                            mapView.controller.setCenter(geoPoint)
+                        } else {
+                            val marker = mapView.overlays.find { it is Marker } as? Marker
+                            val polyline = mapView.overlays.find { it is Polyline } as? Polyline
+
+                            marker?.position = geoPoint
+                            polyline?.addPoint(geoPoint)
+                            mapView.controller.animateTo(geoPoint)
+                        }
+                        mapView.invalidate()
+                    }
+                    if (!stats.isTracking && stats.totalDistanceKm == 0f) {
+                        mapView.overlays.clear()
+                        mapView.invalidate()
+                    }
+                }
+            )
         }
 
         Row(
@@ -311,22 +308,24 @@ fun DetailedStatsScreen(
             }
         }
         
+        val topSpeedDisplay = if (viewModel.speedUnit == "mph") stats.topSpeedKmH * 0.621371f else stats.topSpeedKmH
         WideStatCard(
             icon = Icons.Default.FlashOn, iconColor = Color(0xFFE53935),
-            title = "Top Speed", value = "${String.format("%.0f", stats.topSpeedKmH)}", unit = "km/h"
+            title = "Top Speed", value = String.format("%.0f", topSpeedDisplay), unit = viewModel.speedUnit
         )
         
+        val accelLabel = if (viewModel.speedUnit == "mph") "Best 0-60 mph time" else "Best 0-100 km/h time"
         WideStatCard(
             icon = Icons.Default.Timer, iconColor = Color(0xFFE53935),
-            title = "Best 0-100 km/h time", value = if (stats.best0To100TimeSec != null) String.format("%.1f s", stats.best0To100TimeSec) else "-"
+            title = accelLabel, value = if (stats.best0To100TimeSec != null) String.format("%.1f s", stats.best0To100TimeSec) else "-"
         )
         
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Box(modifier = Modifier.weight(1f)) {
-                StatCard(icon = Icons.Default.ArrowBack, iconColor = Color(0xFF5C6BC0), title = "Left Turns", value = "${stats.leftTurns}")
+                StatCard(icon = Icons.AutoMirrored.Filled.ArrowBack, iconColor = Color(0xFF5C6BC0), title = "Left Turns", value = "${stats.leftTurns}")
             }
             Box(modifier = Modifier.weight(1f)) {
-                StatCard(icon = Icons.Default.ArrowForward, iconColor = Color(0xFFEF5350), title = "Right Turns", value = "${stats.rightTurns}")
+                StatCard(icon = Icons.AutoMirrored.Filled.ArrowForward, iconColor = Color(0xFFEF5350), title = "Right Turns", value = "${stats.rightTurns}")
             }
         }
 
@@ -355,11 +354,12 @@ fun DetailedStatsScreen(
                 StatCard(icon = Icons.Default.Refresh, iconColor = Color(0xFFFF9800), title = "Peak G-Force", value = "${String.format("%.2f", stats.peakGForce)} G")
             }
             Box(modifier = Modifier.weight(1f)) {
-                StatCard(icon = Icons.Default.Refresh, iconColor = Color(0xFF29B6F6), title = "Top Corner Speed", value = "${String.format("%.0f", stats.topCornerSpeedKmH)} km/h")
+                val cornerSpeedDisplay = if (viewModel.speedUnit == "mph") stats.topCornerSpeedKmH * 0.621371f else stats.topCornerSpeedKmH
+                StatCard(icon = Icons.Default.Refresh, iconColor = Color(0xFF29B6F6), title = "Top Corner Speed", value = "${String.format("%.0f", cornerSpeedDisplay)} ${viewModel.speedUnit}")
             }
         }
         
-        Text("More Stats", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
+        Text("More Stats", color = MaterialTheme.colorScheme.onBackground, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
         
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Box(modifier = Modifier.weight(1f)) {
@@ -372,8 +372,10 @@ fun DetailedStatsScreen(
         
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
             Box(modifier = Modifier.weight(1f)) {
-                val avgLength = if (stats.totalTrips > 0) stats.allTimeDistanceKm / stats.totalTrips else 0f
-                StatCard(icon = Icons.Default.SwapHoriz, iconColor = Color.Gray, title = "Avg Trip Length", value = "${String.format("%.1f", avgLength)} km")
+                val avgLengthRaw = if (stats.totalTrips > 0) stats.allTimeDistanceKm / stats.totalTrips else 0f
+                val avgLengthDisplay = if (viewModel.speedUnit == "mph") avgLengthRaw * 0.621371f else avgLengthRaw
+                val avgLengthUnit = if (viewModel.speedUnit == "mph") "mi" else "km"
+                StatCard(icon = Icons.Default.SwapHoriz, iconColor = Color.Gray, title = "Avg Trip Length", value = "${String.format("%.1f", avgLengthDisplay)} $avgLengthUnit")
             }
             Box(modifier = Modifier.weight(1f)) {
                 val allTimeMins = stats.totalAllTimeDurationSeconds / 60
@@ -429,7 +431,7 @@ fun TurnPreferenceBar(leftTurns: Int, rightTurns: Int) {
         modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Turn Preference", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text("Turn Preference", color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
             
             val total = leftTurns + rightTurns
