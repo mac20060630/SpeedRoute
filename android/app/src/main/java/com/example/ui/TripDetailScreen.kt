@@ -90,6 +90,7 @@ fun TripDetailScreen(navController: NavController, tripId: String, viewModel: On
                         factory = { ctx ->
                             MapView(ctx).apply {
                                 setMultiTouchControls(true)
+                                setMaxZoomLevel(17.0) // Prevent extreme zoom for short trips
                                 zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
                                 
                                 // Dark mode tiles approximation
@@ -138,7 +139,10 @@ fun TripDetailScreen(navController: NavController, tripId: String, viewModel: On
                                     post {
                                         try {
                                             val boundingBox = BoundingBox.fromGeoPoints(geoPoints)
-                                            zoomToBoundingBox(boundingBox, false, 100)
+                                            zoomToBoundingBox(boundingBox, false, 250)
+                                            if (zoomLevelDouble > 17.0) {
+                                                controller.setZoom(17.0)
+                                            }
                                         } catch (e: Exception) {
                                             controller.setCenter(geoPoints.first())
                                             controller.setZoom(15.0)
