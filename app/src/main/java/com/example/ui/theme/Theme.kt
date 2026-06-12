@@ -10,7 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 
-private val TripRankColorScheme = darkColorScheme(
+private val RouteRankerColorScheme = darkColorScheme(
     primary = CyanAccent,
     secondary = PurpleGrey80,
     tertiary = Pink80,
@@ -26,5 +26,5 @@ fun MyApplicationTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(colorScheme = TripRankColorScheme, typography = Typography, content = content)
+    MaterialTheme(colorScheme = RouteRankerColorScheme, typography = Typography, content = content)
 }

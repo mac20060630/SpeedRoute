@@ -1,14 +1,14 @@
 <div align="center">
-<img width="1024" alt="GHBanner" src="docs/triprank_banner.png" />
+<img width="1024" alt="GHBanner" src="docs/routeranker_banner.png" />
 </div>
 
-# TripRank
+# RouteRanker
 
-TripRank is an intelligent, AI-powered travel and navigation assistant designed to help you rank, plan, and navigate your daily commutes and trips efficiently.
+RouteRanker is an intelligent, AI-powered travel and navigation assistant designed to help you rank, plan, and navigate your daily commutes and trips efficiently.
 
 ## 🚀 Download the App
 
-You don't need to build from source to use TripRank! 
+You don't need to build from source to use RouteRanker! 
 
 You can directly download the compiled Android app and install it on your device:
 👉 **[Click here to download the latest APK file from our Releases page](../../releases/latest)**
@@ -17,9 +17,9 @@ You can directly download the compiled Android app and install it on your device
 
 ---
 
-## 🌟 What is TripRank and Why is it Helpful?
+## 🌟 What is RouteRanker and Why is it Helpful?
 
-Navigating daily traffic and planning trips can be overwhelming. TripRank solves this by providing a smart mapping interface (powered by OpenStreetMap) that goes beyond simple directions. 
+Navigating daily traffic and planning trips can be overwhelming. RouteRanker solves this by providing a smart mapping interface (powered by OpenStreetMap) that goes beyond simple directions. 
 
 **Key Benefits:**
 - **Smart Planning:** Helps you evaluate and rank the best routes or destinations.
@@ -29,10 +29,10 @@ Navigating daily traffic and planning trips can be overwhelming. TripRank solves
 
 ## 🇮🇳 Tailored for Indian Users
 
-TripRank has been specifically modified and localized from the ground up to perfectly suit the needs of users in India:
+RouteRanker has been specifically modified and localized from the ground up to perfectly suit the needs of users in India:
 
 - **Default Regional Configuration:** The app defaults to **India** as the primary country, immediately aligning currency, units (Metric system/KMPH), and regional defaults to the Indian context.
-- **Vehicle Customization:** Indian roads are incredibly diverse. TripRank supports setting specific vehicle types such as **2-Wheelers**, which is crucial for accurate ETA and route calculations in dense Indian cities.
+- **Vehicle Customization:** Indian roads are incredibly diverse. RouteRanker supports setting specific vehicle types such as **2-Wheelers**, which is crucial for accurate ETA and route calculations in dense Indian cities.
 - **Speed Camera & Safety Alerts:** Configured to highlight speed cameras and safety zones typical of Indian highways and city junctions, helping you avoid fines and drive safely.
 - **Local Nuances:** The onboarding flow intuitively understands Indian travel behaviors, asking the right questions about budget, dates, and trust to provide a localized mapping experience.
 
