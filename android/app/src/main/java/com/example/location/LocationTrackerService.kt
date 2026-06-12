@@ -31,9 +31,13 @@ class LocationTrackerService : Service(), SensorEventListener {
     private var accelerometer: Sensor? = null
     private var gyroscope: Sensor? = null
 
+    private var autoStartPending = false
+
     companion object {
         const val ACTION_START = "ACTION_START"
         const val ACTION_STOP = "ACTION_STOP"
+        const val ACTION_START_AUTO = "ACTION_START_AUTO"
+        const val ACTION_STOP_AUTO = "ACTION_STOP_AUTO"
         private const val NOTIFICATION_ID = 1
         private const val CHANNEL_ID = "location_tracker_channel"
         private const val TAG = "LocationTrackerService"
@@ -56,7 +60,15 @@ class LocationTrackerService : Service(), SensorEventListener {
             override fun onLocationResult(locationResult: LocationResult) {
                 super.onLocationResult(locationResult)
                 locationResult.lastLocation?.let { location ->
-                    Log.d(TAG, "Location update: lat=${location.latitude}, lng=${location.longitude}, speed=${location.speed}")
+                    val speedKmh = if (location.hasSpeed() && location.speed >= 0f) location.speed * 3.6f else 0f
+                    Log.d(TAG, "Location update: lat=${location.latitude}, lng=${location.longitude}, speedKmh=$speedKmh")
+                    
+                    if (autoStartPending && speedKmh > 5.0f) {
+                        Log.d(TAG, "Auto-start threshold reached (>5km/h). Starting tracking session.")
+                        TripManager.startTracking()
+                        autoStartPending = false
+                    }
+                    
                     TripManager.processLocation(location)
                 }
             }
@@ -65,19 +77,22 @@ class LocationTrackerService : Service(), SensorEventListener {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_START -> startTracking()
+            ACTION_START -> startTracking(isAuto = false)
             ACTION_STOP -> stopTracking()
+            ACTION_START_AUTO -> startTracking(isAuto = true)
+            ACTION_STOP_AUTO -> stopTracking()
         }
         return START_STICKY
     }
 
     @Suppress("MissingPermission")
-    private fun startTracking() {
-        Log.d(TAG, "Starting tracking...")
+    private fun startTracking(isAuto: Boolean = false) {
+        Log.d(TAG, "Starting tracking... (isAuto=$isAuto)")
+        autoStartPending = isAuto
         createNotificationChannel()
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Tracking Trip")
-            .setContentText("Your trip is currently being recorded...")
+            .setContentTitle(if (isAuto) "Auto-Detecting Trip..." else "Tracking Trip")
+            .setContentText(if (isAuto) "Waiting for movement > 5km/h..." else "Your trip is currently being recorded...")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setOngoing(true)
             .build()
@@ -116,7 +131,9 @@ class LocationTrackerService : Service(), SensorEventListener {
                 Log.d(TAG, "Gyroscope registered with SENSOR_DELAY_GAME")
             } ?: Log.w(TAG, "No gyroscope sensor available!")
             
-            TripManager.startTracking()
+            if (!isAuto) {
+                TripManager.startTracking()
+            }
             Log.d(TAG, "Tracking started successfully")
         } catch (e: SecurityException) {
             Log.e(TAG, "SecurityException: Missing location permission", e)

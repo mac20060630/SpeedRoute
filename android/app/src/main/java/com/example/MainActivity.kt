@@ -50,12 +50,17 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import com.example.location.AutoTrackingManager
 
 class MainActivity : ComponentActivity() {
     private val onboardingViewModel: com.example.ui.OnboardingViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Try to enable auto-tracking (it will safely return if permissions are missing)
+        AutoTrackingManager.enableAutoTracking(this)
+        
         Configuration.getInstance().load(this, getSharedPreferences("osmdroid", android.content.Context.MODE_PRIVATE))
         Configuration.getInstance().userAgentValue = packageName
         enableEdgeToEdge()

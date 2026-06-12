@@ -214,10 +214,24 @@ fun CountrySelectScreen(navController: NavController, viewModel: OnboardingViewM
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun LocationPermissionScreen(navController: NavController, viewModel: OnboardingViewModel) {
-    val locationPermissionState = rememberPermissionState(android.Manifest.permission.ACCESS_FINE_LOCATION)
+    val permissionsToRequest = mutableListOf(
+        android.Manifest.permission.ACCESS_FINE_LOCATION,
+        android.Manifest.permission.ACCESS_COARSE_LOCATION
+    ).apply {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            add(android.Manifest.permission.ACTIVITY_RECOGNITION)
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            add(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
-    LaunchedEffect(locationPermissionState.status.isGranted) {
-        if (locationPermissionState.status.isGranted) {
+    val permissionsState = com.google.accompanist.permissions.rememberMultiplePermissionsState(permissionsToRequest)
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    LaunchedEffect(permissionsState.allPermissionsGranted) {
+        if (permissionsState.allPermissionsGranted) {
+            com.example.location.AutoTrackingManager.enableAutoTracking(context)
             navController.navigate("vehicle_type")
         }
     }
@@ -231,15 +245,16 @@ fun LocationPermissionScreen(navController: NavController, viewModel: Onboarding
         }
         
         Spacer(modifier = Modifier.height(32.dp))
-        Text("Enable GPS Location Access", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text("Enable Required Permissions", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(16.dp))
-        Text("Allow location access to track your speed, record trips, and provide accurate speedometer readings.", color = Color.Gray, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text("Allow location and physical activity access to track your speed, record trips, and enable auto-tracking features in the background.", color = Color.Gray, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         
         Spacer(modifier = Modifier.weight(1f))
-        ActionButton(text = "Enable Location", onClick = {
-            if (!locationPermissionState.status.isGranted) {
-                locationPermissionState.launchPermissionRequest()
+        ActionButton(text = "Grant Permissions", onClick = {
+            if (!permissionsState.allPermissionsGranted) {
+                permissionsState.launchMultiplePermissionRequest()
             } else {
+                com.example.location.AutoTrackingManager.enableAutoTracking(context)
                 navController.navigate("vehicle_type")
             }
         })
