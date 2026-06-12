@@ -54,10 +54,10 @@ class MainActivity : ComponentActivity() {
         Configuration.getInstance().load(this, getSharedPreferences("osmdroid", android.content.Context.MODE_PRIVATE))
         enableEdgeToEdge()
         setContent {
-            MyApplicationTheme {
-                Scaffold(modifier = Modifier.fillMaxSize(), containerColor = Color.Black) { innerPadding ->
+            val onboardingViewModel: OnboardingViewModel = viewModel()
+            MyApplicationTheme(darkTheme = onboardingViewModel.isDarkTheme) {
+                Scaffold(modifier = Modifier.fillMaxSize(), containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
                     val navController = rememberNavController()
-                    val onboardingViewModel: OnboardingViewModel = viewModel()
                     NavHost(
                         navController = navController,
                         startDestination = "welcome",
@@ -76,11 +76,13 @@ class MainActivity : ComponentActivity() {
                         composable("trust") { TrustScreen(navController) }
                         composable("dashboard") {
                             DashboardScreen(
+                                navController = navController,
                                 onStartTracking = { startTracker() },
-                                onStopTracking = { stopTracker() },
+                                onStopTracking = { stopTracker(onboardingViewModel) },
                                 viewModel = onboardingViewModel
                             )
                         }
+                        composable("leaderboard") { LeaderboardScreen(navController) }
                     }
                 }
             }
@@ -98,11 +100,29 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun stopTracker() {
+    private fun stopTracker(viewModel: OnboardingViewModel) {
         val intent = Intent(this, LocationTrackerService::class.java).apply {
             action = LocationTrackerService.ACTION_STOP
         }
         startService(intent)
+        
+        // Save to Firestore
+        if (viewModel.username.isNotBlank()) {
+            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            val stats = TripManager.stats.value
+            val userRecord = hashMapOf(
+                "username" to viewModel.username,
+                "country" to viewModel.country.name,
+                "vehicleBrand" to viewModel.vehicleBrand,
+                "topSpeed" to stats.topSpeedKmH,
+                "timestamp" to System.currentTimeMillis()
+            )
+            
+            // In a real app we might only update if it's a new personal record
+            db.collection("leaderboard")
+                .document(viewModel.username)
+                .set(userRecord)
+        }
     }
 }
 
@@ -110,6 +130,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun DashboardScreen(
     modifier: Modifier = Modifier,
+    navController: NavController,
     onStartTracking: () -> Unit,
     onStopTracking: () -> Unit,
     viewModel: OnboardingViewModel
@@ -129,6 +150,7 @@ fun DashboardScreen(
     }
     
     val stats by TripManager.stats.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Column(
         modifier = modifier
@@ -137,26 +159,38 @@ fun DashboardScreen(
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        Text(
-            text = "Your profile is ready!",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Your profile is ready!",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            IconButton(onClick = { viewModel.isDarkTheme = !viewModel.isDarkTheme }) {
+                Icon(
+                    if (viewModel.isDarkTheme) Icons.Default.WbSunny else Icons.Default.NightsStay,
+                    contentDescription = "Toggle Theme",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
+            }
+        }
         
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
-                Text(viewModel.username.ifEmpty { "Guest" }, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                Text(viewModel.username.ifEmpty { "Guest" }, color = MaterialTheme.colorScheme.onBackground, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
                 Text("${viewModel.country.name} - ${viewModel.vehicleBrand} ${viewModel.vehicleModel}", color = Color.Gray, fontSize = 14.sp)
             }
             Spacer(modifier = Modifier.weight(1f))
             Column(horizontalAlignment = Alignment.End) {
                 val speedVal = if (viewModel.speedUnit == "mph") stats.currentSpeedKmH * 0.621371 else stats.currentSpeedKmH
-                Text(String.format("%.0f", speedVal), color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Text(String.format("%.0f", speedVal), color = MaterialTheme.colorScheme.onBackground, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 Text(viewModel.speedUnit, color = Color.Gray, fontSize = 12.sp)
             }
         }
@@ -262,8 +296,44 @@ fun DashboardScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
+                .padding(bottom = 8.dp)
         ) {
             Text(buttonText, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Button(
+                onClick = {
+                    val speedToShare = if (viewModel.speedUnit == "mph") stats.topSpeedKmH * 0.621371 else stats.topSpeedKmH
+                    val shareIntent = Intent().apply {
+                        action = Intent.ACTION_SEND
+                        putExtra(Intent.EXTRA_TEXT, "I just hit a top speed of ${String.format("%.1f", speedToShare)} ${viewModel.speedUnit} on my ${viewModel.vehicleBrand} using RouteRanker! 🚀")
+                        type = "text/plain"
+                    }
+                    context.startActivity(Intent.createChooser(shareIntent, "Share Top Speed"))
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.weight(1f).height(56.dp)
+            ) {
+                Icon(Icons.Default.Share, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Share", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+            }
+
+            Button(
+                onClick = { navController.navigate("leaderboard") },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.weight(1f).height(56.dp)
+            ) {
+                Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = Color(0xFFFFB74D))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Rankings", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
@@ -279,7 +349,7 @@ fun StatCard(icon: androidx.compose.ui.graphics.vector.ImageVector, iconColor: C
             Icon(icon, contentDescription = null, tint = iconColor)
             Spacer(modifier = Modifier.height(16.dp))
             Text(title, color = Color.Gray, fontSize = 12.sp)
-            Text(value, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text(value, color = MaterialTheme.colorScheme.onBackground, fontSize = 24.sp, fontWeight = FontWeight.Bold)
         }
     }
 }

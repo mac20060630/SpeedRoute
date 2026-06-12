@@ -11,6 +11,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
 class OnboardingViewModel : ViewModel() {
+    var isDarkTheme by mutableStateOf(true)
+
     var speedUnit by mutableStateOf("km/h")
     var country by mutableStateOf(Countries.list.first { it.name == "India" })
     var vehicleType by mutableStateOf("Car")

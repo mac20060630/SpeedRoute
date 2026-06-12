@@ -10,7 +10,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 
-private val RouteRankerColorScheme = darkColorScheme(
+import androidx.compose.material3.lightColorScheme
+
+private val DarkColorScheme = darkColorScheme(
     primary = CyanAccent,
     secondary = PurpleGrey80,
     tertiary = Pink80,
@@ -20,11 +22,22 @@ private val RouteRankerColorScheme = darkColorScheme(
     onSurface = Color.White
 )
 
+private val LightColorScheme = lightColorScheme(
+    primary = CyanAccent,
+    secondary = PurpleGrey40,
+    tertiary = Pink40,
+    background = LightBackground,
+    surface = LightSurface,
+    onBackground = Color.Black,
+    onSurface = Color.Black
+)
+
 @Composable
 fun MyApplicationTheme(
-    darkTheme: Boolean = true,
+    darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(colorScheme = RouteRankerColorScheme, typography = Typography, content = content)
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
 }

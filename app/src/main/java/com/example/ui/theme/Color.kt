@@ -4,6 +4,8 @@ import androidx.compose.ui.graphics.Color
 
 val DarkBackground = Color(0xFF000000)
 val DarkSurface = Color(0xFF1C1C1E)
+val LightBackground = Color(0xFFF5F5F5)
+val LightSurface = Color(0xFFFFFFFF)
 val CyanAccent = Color(0xFF5FC9C9)
 
 val Purple80 = Color(0xFFD0BCFF)

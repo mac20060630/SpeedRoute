@@ -584,7 +584,19 @@ fun TrustScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text("Your privacy and security matter to us.", color = Color.White, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("We promise to always keep your personal information private and secure.", color = Color.Gray, fontSize = 12.sp, textAlign = TextAlign.Center)
+                Text("We promise to always keep your personal information private and secure. No location tracking history is stored.", color = Color.Gray, fontSize = 12.sp, textAlign = TextAlign.Center)
+                Spacer(modifier = Modifier.height(16.dp))
+                val context = androidx.compose.ui.platform.LocalContext.current
+                Text(
+                    "Read our Privacy Policy",
+                    color = Color(0xFF5FC9C9),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://policies.google.com/privacy"))
+                        context.startActivity(intent)
+                    }
+                )
             }
         }
         
