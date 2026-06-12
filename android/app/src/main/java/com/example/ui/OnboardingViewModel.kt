@@ -1,5 +1,6 @@
 package com.example.ui
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -13,6 +14,9 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.tasks.await
 
 class OnboardingViewModel : ViewModel() {
+    companion object {
+        private const val TAG = "OnboardingViewModel"
+    }
     var isDarkTheme by mutableStateOf(true)
 
     var speedUnit by mutableStateOf("km/h")
@@ -110,7 +114,13 @@ class OnboardingViewModel : ViewModel() {
                 val result = auth.createUserWithEmailAndPassword(email, password).await()
                 val user = result.user
                 if (user != null) {
-                    user.sendEmailVerification().await()
+                    val verificationSent = try {
+                        user.sendEmailVerification().await()
+                        true
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Email verification send failed for uid=${user.uid}", e)
+                        false
+                    }
                     val uid = user.uid
                     val db = FirebaseFirestore.getInstance()
                     val userDoc = hashMapOf(
@@ -121,7 +131,11 @@ class OnboardingViewModel : ViewModel() {
                     db.collection("users").document(uid).set(userDoc).await()
                     
                     auth.signOut()
-                    authMessage = "Verification email sent. Please check your inbox and then log in."
+                    authMessage = if (verificationSent) {
+                        "Account created. Verification email sent. Check inbox/spam, then log in to continue."
+                    } else {
+                        "Account created. Verification email could not be sent right now. Please log in to continue."
+                    }
                 }
             } catch (e: Exception) {
                 authError = e.message ?: "Registration failed"
@@ -148,9 +162,18 @@ class OnboardingViewModel : ViewModel() {
                 val user = result.user
                 
                 if (user != null && !user.isEmailVerified) {
-                    authError = "Please verify your email address to log in."
-                    auth.signOut()
-                    return@launch
+                    val verificationResent = try {
+                        user.sendEmailVerification().await()
+                        true
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Email verification resend failed for uid=${user.uid}", e)
+                        false
+                    }
+                    authMessage = if (verificationResent) {
+                        "Email not verified yet. A new verification email was sent. Check inbox/spam."
+                    } else {
+                        "Email not verified yet. Verification email could not be sent right now."
+                    }
                 }
                 
                 val uid = user?.uid
