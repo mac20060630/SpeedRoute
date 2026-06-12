@@ -45,14 +45,47 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.views.overlay.Polyline
 import org.osmdroid.views.overlay.Marker
 
+import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+
 class MainActivity : ComponentActivity() {
+    private val onboardingViewModel: com.example.ui.OnboardingViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Configuration.getInstance().load(this, getSharedPreferences("osmdroid", android.content.Context.MODE_PRIVATE))
         Configuration.getInstance().userAgentValue = packageName
         enableEdgeToEdge()
+
+        lifecycleScope.launch {
+            TripManager.stats
+                .map { it.topSpeedKmH }
+                .distinctUntilChanged()
+                .collect { topSpeed ->
+                    if (TripManager.stats.value.isTracking && topSpeed > 0) {
+                        val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+                        val user = auth.currentUser
+                        if (user != null && onboardingViewModel.username.isNotBlank()) {
+                            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                            val userRecord = hashMapOf(
+                                "u" to onboardingViewModel.username,
+                                "c" to onboardingViewModel.country.name,
+                                "v" to onboardingViewModel.vehicleBrand,
+                                "ts" to topSpeed,
+                                "t" to System.currentTimeMillis()
+                            )
+                            db.collection("leaderboard").document(user.uid)
+                                .set(userRecord, com.google.firebase.firestore.SetOptions.merge())
+                        }
+                    }
+                }
+        }
+
         setContent {
-            val onboardingViewModel: OnboardingViewModel = viewModel()
+            val onboardingViewModel: com.example.ui.OnboardingViewModel = this.onboardingViewModel
             MyApplicationTheme(darkTheme = onboardingViewModel.isDarkTheme) {
                 Scaffold(modifier = Modifier.fillMaxSize(), containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
                     val navController = rememberNavController()
