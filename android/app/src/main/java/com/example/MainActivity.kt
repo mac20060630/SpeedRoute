@@ -390,7 +390,7 @@ fun DetailedStatsScreen(
                 val speedToShare = if (viewModel.speedUnit == "mph") stats.topSpeedKmH * 0.621371 else stats.topSpeedKmH
                 val shareIntent = Intent().apply {
                     action = Intent.ACTION_SEND
-                    putExtra(Intent.EXTRA_TEXT, "I just hit a top speed of ${String.format("%.1f", speedToShare)} ${viewModel.speedUnit} on my ${viewModel.vehicleBrand} using RouteRanker! 🚀")
+                    putExtra(Intent.EXTRA_TEXT, "I just hit a top speed of ${String.format("%.1f", speedToShare)} ${viewModel.speedUnit} on my ${viewModel.vehicleBrand} using speed Route! 🚀")
                     type = "text/plain"
                 }
                 context.startActivity(Intent.createChooser(shareIntent, "Share Top Speed"))
