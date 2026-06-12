@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.utils.ReleaseLinks
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.google.firebase.firestore.FirebaseFirestore
@@ -41,7 +42,7 @@ class OnboardingViewModel : ViewModel() {
     var isHighScoreBeaten by mutableStateOf(false)
     var userTopSpeed by mutableStateOf(0f)
     var globalMaxSpeed by mutableStateOf(0f)
-    var updateApkUrl by mutableStateOf("https://github.com/mac20060630/SpeedRoute/releases/latest")
+    var updateApkUrl by mutableStateOf(ReleaseLinks.LATEST_RELEASE_URL)
 
     var isCheckingUsername by mutableStateOf(false)
     var isUsernameAvailable by mutableStateOf<Boolean?>(null)
@@ -185,14 +186,14 @@ class OnboardingViewModel : ViewModel() {
                     val latest = versionDoc.getString("latest_version") ?: currentVersion
                     isNewVersionAvailable = latest != currentVersion
                     updateApkUrl = versionDoc.getString("apk_url")
-                        ?: "https://github.com/mac20060630/SpeedRoute/releases/latest"
+                        ?: ReleaseLinks.LATEST_RELEASE_URL
                 } else {
                     db.collection("app_metadata").document("version").set(hashMapOf(
                         "latest_version" to currentVersion,
-                        "apk_url" to "https://github.com/mac20060630/SpeedRoute/releases/latest"
+                        "apk_url" to ReleaseLinks.LATEST_RELEASE_URL
                     ))
                     isNewVersionAvailable = false
-                    updateApkUrl = "https://github.com/mac20060630/SpeedRoute/releases/latest"
+                    updateApkUrl = ReleaseLinks.LATEST_RELEASE_URL
                 }
 
                 // 2. Check Leaderboard

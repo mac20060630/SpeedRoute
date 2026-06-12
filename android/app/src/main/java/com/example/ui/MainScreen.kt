@@ -35,8 +35,10 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.widget.Toast
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.example.utils.ReleaseLinks
 
 @Composable
 fun MainScreen(
@@ -460,9 +462,12 @@ fun NotificationsDialog(
 
                 if (viewModel.isNewVersionAvailable) {
                     notificationsList.add {
-                        val releaseUrl = viewModel.updateApkUrl
-                            .takeUnless { it.isBlank() || it == "https://github.com/" }
-                            ?: "https://github.com/mac20060630/SpeedRoute/releases/latest"
+                        val releaseUrl = resolveReleaseUrl(viewModel.updateApkUrl)
+                        val releaseButtonLabel = if (releaseUrl.endsWith(".apk", ignoreCase = true)) {
+                            "Download"
+                        } else {
+                            "View Update"
+                        }
                         Card(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                             shape = RoundedCornerShape(12.dp),
@@ -494,7 +499,7 @@ fun NotificationsDialog(
                                         shape = RoundedCornerShape(8.dp),
                                         modifier = Modifier.height(36.dp)
                                     ) {
-                                        Text("Open Release", fontSize = 12.sp, color = Color.Black)
+                                        Text(releaseButtonLabel, fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimary)
                                     }
                                 }
                             }
@@ -558,6 +563,14 @@ fun NotificationsDialog(
     )
 }
 
+private fun resolveReleaseUrl(updateUrl: String): String {
+    if (updateUrl.isBlank()) return ReleaseLinks.LATEST_RELEASE_URL
+    val isValid = runCatching {
+        !Uri.parse(updateUrl).host.isNullOrBlank()
+    }.getOrDefault(false)
+    return if (isValid) updateUrl else ReleaseLinks.LATEST_RELEASE_URL
+}
+
 private fun openReleaseNotification(context: Context, releaseUrl: String) {
     if (releaseUrl.endsWith(".apk", ignoreCase = true)) {
         com.example.utils.AppUpdater.downloadAndInstallApk(context, releaseUrl)
@@ -567,5 +580,13 @@ private fun openReleaseNotification(context: Context, releaseUrl: String) {
     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(releaseUrl)).apply {
         flags = Intent.FLAG_ACTIVITY_NEW_TASK
     }
-    context.startActivity(intent)
+    try {
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        Toast.makeText(
+            context,
+            "Couldn't open release link. Please visit GitHub releases manually.",
+            Toast.LENGTH_LONG
+        ).show()
+    }
 }
