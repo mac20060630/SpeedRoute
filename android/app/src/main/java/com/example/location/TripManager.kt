@@ -240,7 +240,7 @@ object TripManager {
 
             val newRoutePoints = current.routePoints.toMutableList()
             if (newRoutePoints.isEmpty() || lastLocation == null || location.distanceTo(lastLocation!!) > 50f) {
-                newRoutePoints.add(com.example.models.TripPoint(location.latitude, location.longitude))
+                newRoutePoints.add(com.example.models.TripPoint(location.latitude, location.longitude, speedKmh))
             }
 
             current.copy(

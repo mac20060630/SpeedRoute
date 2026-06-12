@@ -21,5 +21,6 @@ data class Trip(
 @IgnoreExtraProperties
 data class TripPoint(
     val lat: Double = 0.0,
-    val lng: Double = 0.0
+    val lng: Double = 0.0,
+    val speedKmh: Float = 0f
 )
