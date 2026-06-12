@@ -451,8 +451,7 @@ fun NotificationsDialog(
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Button(
                                     onClick = {
-                                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/"))
-                                        context.startActivity(intent)
+                                        com.example.utils.AppUpdater.downloadAndInstallApk(context, viewModel.updateApkUrl)
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                     shape = RoundedCornerShape(8.dp),

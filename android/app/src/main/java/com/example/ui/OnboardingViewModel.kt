@@ -40,6 +40,7 @@ class OnboardingViewModel : ViewModel() {
     var isHighScoreBeaten by mutableStateOf(false)
     var userTopSpeed by mutableStateOf(0f)
     var globalMaxSpeed by mutableStateOf(0f)
+    var updateApkUrl by mutableStateOf("https://github.com/")
 
     var isCheckingUsername by mutableStateOf(false)
     var isUsernameAvailable by mutableStateOf<Boolean?>(null)
@@ -163,9 +164,14 @@ class OnboardingViewModel : ViewModel() {
                 if (versionDoc.exists()) {
                     val latest = versionDoc.getString("latest_version") ?: "1.0"
                     isNewVersionAvailable = latest != "1.0"
+                    updateApkUrl = versionDoc.getString("apk_url") ?: "https://github.com/"
                 } else {
-                    db.collection("app_metadata").document("version").set(hashMapOf("latest_version" to "1.1"))
+                    db.collection("app_metadata").document("version").set(hashMapOf(
+                        "latest_version" to "1.1",
+                        "apk_url" to "https://github.com/"
+                    ))
                     isNewVersionAvailable = true
+                    updateApkUrl = "https://github.com/"
                 }
 
                 // 2. Check Leaderboard
