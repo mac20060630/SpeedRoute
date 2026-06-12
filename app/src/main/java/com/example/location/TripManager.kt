@@ -38,7 +38,8 @@ data class TripStats(
     val laneChanges: Int = 0,
     
     val currentLat: Double? = null,
-    val currentLng: Double? = null
+    val currentLng: Double? = null,
+    val currentAltitude: Double = 0.0
 )
 
 object TripManager {
@@ -208,7 +209,8 @@ object TripManager {
                 totalStops = sessionTotalStops,
                 best0To100TimeSec = newBest0100,
                 currentLat = location.latitude,
-                currentLng = location.longitude
+                currentLng = location.longitude,
+                currentAltitude = location.altitude
             )
         }
 

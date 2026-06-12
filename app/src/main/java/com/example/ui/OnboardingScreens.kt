@@ -672,7 +672,7 @@ fun TrustScreen(navController: NavController) {
         }
         
         Spacer(modifier = Modifier.weight(1f))
-        ActionButton(text = "Continue to Dashboard", onClick = { navController.navigate("dashboard") {
+        ActionButton(text = "Continue to Dashboard", onClick = { navController.navigate("main") {
             popUpTo("welcome") { inclusive = true }
         } })
     }

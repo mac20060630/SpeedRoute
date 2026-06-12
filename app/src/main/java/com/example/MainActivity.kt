@@ -76,9 +76,9 @@ class MainActivity : ComponentActivity() {
                         composable("username") { UsernameScreen(navController, onboardingViewModel) }
                         composable("dob") { DOBScreen(navController, onboardingViewModel) }
                         composable("trust") { TrustScreen(navController) }
-                        composable("dashboard") {
-                            DashboardScreen(
-                                navController = navController,
+                        composable("main") {
+                            com.example.ui.MainScreen(
+                                mainNavController = navController,
                                 onStartTracking = { startTracker() },
                                 onStopTracking = { stopTracker(onboardingViewModel) },
                                 viewModel = onboardingViewModel
@@ -130,11 +130,8 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun DashboardScreen(
+fun DetailedStatsScreen(
     modifier: Modifier = Modifier,
-    navController: NavController,
-    onStartTracking: () -> Unit,
-    onStopTracking: () -> Unit,
     viewModel: OnboardingViewModel
 ) {
     val permissions = mutableListOf(
@@ -282,60 +279,23 @@ fun DashboardScreen(
             }
         }
         
-        val buttonText = if (stats.isTracking) "Stop Tracking" else "Start Journey"
-        val buttonColor = if (stats.isTracking) Color(0xFFE57373) else MaterialTheme.colorScheme.primary
-        
         Button(
             onClick = {
-                if (permissionsState.allPermissionsGranted) {
-                    if (stats.isTracking) onStopTracking() else onStartTracking()
-                } else {
-                    permissionsState.launchMultiplePermissionRequest()
+                val speedToShare = if (viewModel.speedUnit == "mph") stats.topSpeedKmH * 0.621371 else stats.topSpeedKmH
+                val shareIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_TEXT, "I just hit a top speed of ${String.format("%.1f", speedToShare)} ${viewModel.speedUnit} on my ${viewModel.vehicleBrand} using RouteRanker! 🚀")
+                    type = "text/plain"
                 }
+                context.startActivity(Intent.createChooser(shareIntent, "Share Top Speed"))
             },
-            colors = ButtonDefaults.buttonColors(containerColor = buttonColor),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface),
             shape = RoundedCornerShape(12.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .padding(bottom = 8.dp)
+            modifier = Modifier.fillMaxWidth().height(56.dp)
         ) {
-            Text(buttonText, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Button(
-                onClick = {
-                    val speedToShare = if (viewModel.speedUnit == "mph") stats.topSpeedKmH * 0.621371 else stats.topSpeedKmH
-                    val shareIntent = Intent().apply {
-                        action = Intent.ACTION_SEND
-                        putExtra(Intent.EXTRA_TEXT, "I just hit a top speed of ${String.format("%.1f", speedToShare)} ${viewModel.speedUnit} on my ${viewModel.vehicleBrand} using RouteRanker! 🚀")
-                        type = "text/plain"
-                    }
-                    context.startActivity(Intent.createChooser(shareIntent, "Share Top Speed"))
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.weight(1f).height(56.dp)
-            ) {
-                Icon(Icons.Default.Share, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Share", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-            }
-
-            Button(
-                onClick = { navController.navigate("leaderboard") },
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.weight(1f).height(56.dp)
-            ) {
-                Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = Color(0xFFFFB74D))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Rankings", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-            }
+            Icon(Icons.Default.Share, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Share", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
         }
         
         Spacer(modifier = Modifier.height(24.dp))
