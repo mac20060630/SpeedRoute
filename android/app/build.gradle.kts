@@ -108,6 +108,8 @@ dependencies {
   implementation("com.google.firebase:firebase-auth")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.1")
   implementation("org.osmdroid:osmdroid-android:6.1.18")
+  implementation(libs.play.app.update)
+  implementation(libs.play.app.update.ktx)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)
