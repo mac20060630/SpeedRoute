@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -75,27 +76,30 @@ fun ProfileScreen(navController: NavController, viewModel: OnboardingViewModel) 
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
+        LaunchedEffect(Unit) {
+            viewModel.fetchUserProfile()
+        }
+        
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(padding).padding(16.dp).verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Profile Picture
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Profile Picture with overlay
             Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .background(Color.DarkGray)
-                    .clickable { launcher.launch("image/*") },
+                modifier = Modifier.size(120.dp).clip(CircleShape).background(Color(0xFF2C2C2E)).clickable { launcher.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
-                val imageBitmap = viewModel.profilePicBase64?.let { ImageCompressionHelper.decodeBase64ToImageBitmap(it) }
-                if (imageBitmap != null) {
+                val decodedBitmap = viewModel.profilePicBase64?.let { base64 ->
+                    try {
+                        val bytes = android.util.Base64.decode(base64, android.util.Base64.DEFAULT)
+                        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    } catch (e: Exception) { null }
+                }
+                if (decodedBitmap != null) {
                     Image(
-                        bitmap = imageBitmap,
+                        bitmap = decodedBitmap.asImageBitmap(),
                         contentDescription = "Profile Picture",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
@@ -116,10 +120,73 @@ fun ProfileScreen(navController: NavController, viewModel: OnboardingViewModel) 
             
             Spacer(modifier = Modifier.height(32.dp))
             
-            // Read-only Details
-            ProfileField("Username", viewModel.username)
-            ProfileField("Email", viewModel.email)
-            ProfileField("Date of Birth", viewModel.dob)
+            var editingField by remember { mutableStateOf<String?>(null) }
+            var editValue by remember { mutableStateOf("") }
+            
+            if (editingField != null) {
+                AlertDialog(
+                    onDismissRequest = { editingField = null },
+                    title = { Text("Set $editingField") },
+                    text = {
+                        OutlinedTextField(
+                            value = editValue,
+                            onValueChange = { editValue = it },
+                            label = { Text("Enter your $editingField") },
+                            singleLine = true
+                        )
+                    },
+                    confirmButton = {
+                        Button(onClick = {
+                            val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                            if (uid != null && editValue.isNotBlank()) {
+                                val fieldKey = when (editingField) {
+                                    "Username" -> "u"
+                                    "Date of Birth" -> "d"
+                                    "Email" -> "e"
+                                    else -> ""
+                                }
+                                if (fieldKey.isNotEmpty()) {
+                                    com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                                        .collection("users").document(uid)
+                                        .update(fieldKey, editValue)
+                                    // Update locally
+                                    when (editingField) {
+                                        "Username" -> viewModel.username = editValue
+                                        "Date of Birth" -> viewModel.dob = editValue
+                                        "Email" -> viewModel.email = editValue
+                                    }
+                                }
+                            }
+                            editingField = null
+                        }) {
+                            Text("Save")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { editingField = null }) { Text("Cancel") }
+                    }
+                )
+            }
+            
+            // Read-only Details (unless missing)
+            ProfileField("Username", if (viewModel.username.isBlank()) "Not Set" else viewModel.username) {
+                if (viewModel.username.isBlank() || viewModel.username == "Not Set") {
+                    editingField = "Username"
+                    editValue = ""
+                }
+            }
+            ProfileField("Email", if (viewModel.email.isBlank()) "Not Set" else viewModel.email) {
+                if (viewModel.email.isBlank() || viewModel.email == "Not Set") {
+                    editingField = "Email"
+                    editValue = ""
+                }
+            }
+            ProfileField("Date of Birth", if (viewModel.dob.isBlank()) "Not Set" else viewModel.dob) {
+                if (viewModel.dob.isBlank() || viewModel.dob == "Not Set") {
+                    editingField = "Date of Birth"
+                    editValue = ""
+                }
+            }
 
             Spacer(modifier = Modifier.height(40.dp))
             
@@ -158,7 +225,7 @@ fun ProfileScreen(navController: NavController, viewModel: OnboardingViewModel) 
 }
 
 @Composable
-fun ProfileField(label: String, value: String) {
+fun ProfileField(label: String, value: String, onClick: () -> Unit = {}) {
     Column(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
         Text(label, color = Color.Gray, fontSize = 14.sp, modifier = Modifier.padding(bottom = 4.dp))
         Box(
@@ -166,6 +233,8 @@ fun ProfileField(label: String, value: String) {
                 .fillMaxWidth()
                 .border(1.dp, Color.DarkGray, RoundedCornerShape(12.dp))
                 .background(Color(0xFF1C1C1E), RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(onClick = onClick)
                 .padding(16.dp)
         ) {
             Text(value.ifEmpty { "Not provided" }, color = Color.White, fontSize = 16.sp)
