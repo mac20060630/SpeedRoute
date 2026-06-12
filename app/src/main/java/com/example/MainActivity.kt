@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -87,6 +88,11 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("leaderboard") { LeaderboardScreen(navController) }
                         composable("profile") { com.example.ui.ProfileScreen(navController, onboardingViewModel) }
+                        composable("trip_history") { com.example.ui.TripHistoryScreen(navController, onboardingViewModel) }
+                        composable("trip_detail/{tripId}") { backStackEntry ->
+                            val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
+                            com.example.ui.TripDetailScreen(navController, tripId, onboardingViewModel)
+                        }
                     }
                 }
             }
@@ -110,24 +116,44 @@ class MainActivity : ComponentActivity() {
         }
         startService(intent)
         
-        // Save to Firestore using optimized schema
+        // Save to Firestore
         val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
         val user = auth.currentUser
-        if (user != null && viewModel.username.isNotBlank()) {
+        if (user != null) {
             val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
             val stats = TripManager.stats.value
-            val userRecord = hashMapOf(
-                "u" to viewModel.username,
-                "c" to viewModel.country.name,
-                "v" to viewModel.vehicleBrand,
-                "ts" to stats.topSpeedKmH,
-                "t" to System.currentTimeMillis()
-            )
             
-            db.collection("leaderboard")
-                .document(user.uid)
-                .set(userRecord, com.google.firebase.firestore.SetOptions.merge())
+            // Save to Leaderboard
+            if (viewModel.username.isNotBlank()) {
+                val userRecord = hashMapOf(
+                    "u" to viewModel.username,
+                    "c" to viewModel.country.name,
+                    "v" to viewModel.vehicleBrand,
+                    "ts" to stats.topSpeedKmH,
+                    "t" to System.currentTimeMillis()
+                )
+                db.collection("leaderboard")
+                    .document(user.uid)
+                    .set(userRecord, com.google.firebase.firestore.SetOptions.merge())
+            }
+
+            // Save Trip History
+            val tripRef = db.collection("users").document(user.uid).collection("trips").document()
+            val trip = com.example.models.Trip(
+                id = tripRef.id,
+                timestamp = System.currentTimeMillis(),
+                durationSeconds = stats.durationSeconds,
+                totalDistanceKm = stats.totalDistanceKm.toDouble(),
+                topSpeedKmH = stats.topSpeedKmH.toDouble(),
+                best0To100TimeSec = stats.best0To100TimeSec?.toDouble(),
+                leftTurns = stats.leftTurns,
+                rightTurns = stats.rightTurns,
+                hardBrakes = stats.brakeEvents,
+                routePoints = stats.routePoints
+            )
+            tripRef.set(trip)
         }
+        TripManager.stopTracking()
     }
 }
 
@@ -135,7 +161,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun DetailedStatsScreen(
     modifier: Modifier = Modifier,
-    viewModel: OnboardingViewModel
+    viewModel: OnboardingViewModel,
+    onTotalTripsClick: () -> Unit = {}
 ) {
     val permissions = mutableListOf(
         Manifest.permission.ACCESS_FINE_LOCATION,
@@ -344,7 +371,7 @@ fun DetailedStatsScreen(
                 StatCard(icon = Icons.Default.Pause, iconColor = Color(0xFFB388FF), title = "Stopped Time", value = "${stats.stoppedTimeSeconds / 60}m")
             }
             Box(modifier = Modifier.weight(1f)) {
-                StatCard(icon = Icons.Default.Layers, iconColor = Color(0xFF81C784), title = "Total Trips", value = "${stats.totalTrips}")
+                StatCard(icon = Icons.Default.Layers, iconColor = Color(0xFF81C784), title = "Total Trips", value = "${stats.totalTrips}", onClick = onTotalTripsClick)
             }
         }
         
@@ -403,7 +430,7 @@ fun DetailedStatsScreen(
         
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Box(modifier = Modifier.weight(1f)) {
-                StatCard(icon = Icons.Default.DirectionsCar, iconColor = Color.Gray, title = "Total Trips", value = "${stats.totalTrips}")
+                StatCard(icon = Icons.Default.DirectionsCar, iconColor = Color.Gray, title = "Total Trips", value = "${stats.totalTrips}", onClick = onTotalTripsClick)
             }
             Box(modifier = Modifier.weight(1f)) {
                 StatCard(icon = Icons.Default.Stop, iconColor = Color.Gray, title = "Total Stops", value = "${stats.totalStops}")
@@ -426,11 +453,13 @@ fun DetailedStatsScreen(
 }
 
 @Composable
-fun StatCard(icon: androidx.compose.ui.graphics.vector.ImageVector, iconColor: Color, title: String, value: String) {
+fun StatCard(icon: androidx.compose.ui.graphics.vector.ImageVector, iconColor: Color, title: String, value: String, onClick: (() -> Unit)? = null) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Icon(icon, contentDescription = null, tint = iconColor)

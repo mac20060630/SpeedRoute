@@ -40,7 +40,8 @@ data class TripStats(
     
     val currentLat: Double? = null,
     val currentLng: Double? = null,
-    val currentAltitude: Double = 0.0
+    val currentAltitude: Double = 0.0,
+    val routePoints: List<com.example.models.TripPoint> = emptyList()
 )
 
 object TripManager {
@@ -237,6 +238,11 @@ object TripManager {
             previousSpeedKmH = speedKmh
             lastSpeedTime = currentTime
 
+            val newRoutePoints = current.routePoints.toMutableList()
+            if (newRoutePoints.isEmpty() || lastLocation == null || location.distanceTo(lastLocation!!) > 50f) {
+                newRoutePoints.add(com.example.models.TripPoint(location.latitude, location.longitude))
+            }
+
             current.copy(
                 currentSpeedKmH = speedKmh,
                 topSpeedKmH = newTopSpeed,
@@ -250,7 +256,8 @@ object TripManager {
                 best0To100TimeSec = newBest0100,
                 currentLat = location.latitude,
                 currentLng = location.longitude,
-                currentAltitude = location.altitude
+                currentAltitude = location.altitude,
+                routePoints = newRoutePoints
             )
         }
 

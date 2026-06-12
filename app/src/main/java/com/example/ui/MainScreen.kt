@@ -121,7 +121,8 @@ fun MainScreen(
             }
             composable("stats") {
                 com.example.DetailedStatsScreen(
-                    viewModel = viewModel
+                    viewModel = viewModel,
+                    onTotalTripsClick = { mainNavController.navigate("trip_history") }
                 )
             }
             composable("leaderboard") {
