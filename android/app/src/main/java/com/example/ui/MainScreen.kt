@@ -2,6 +2,7 @@ package com.example.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,9 +31,14 @@ import com.example.location.TripManager
 import kotlin.math.cos
 import kotlin.math.sin
 import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.widget.Toast
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.example.utils.ReleaseLinks
 
 @Composable
 fun MainScreen(
@@ -456,10 +462,18 @@ fun NotificationsDialog(
 
                 if (viewModel.isNewVersionAvailable) {
                     notificationsList.add {
+                        val releaseUrl = resolveReleaseUrl(viewModel.updateApkUrl)
+                        val releaseButtonLabel = if (releaseUrl.endsWith(".apk", ignoreCase = true)) {
+                            "Download"
+                        } else {
+                            "View Update"
+                        }
                         Card(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                             shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { openReleaseNotification(context, releaseUrl) }
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text("New Version Released", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, fontSize = 14.sp)
@@ -479,13 +493,13 @@ fun NotificationsDialog(
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Button(
                                         onClick = {
-                                            com.example.utils.AppUpdater.downloadAndInstallApk(context, viewModel.updateApkUrl)
+                                            openReleaseNotification(context, releaseUrl)
                                         },
                                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                         shape = RoundedCornerShape(8.dp),
                                         modifier = Modifier.height(36.dp)
                                     ) {
-                                        Text("Download", fontSize = 12.sp, color = Color.Black)
+                                        Text(releaseButtonLabel, fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimary)
                                     }
                                 }
                             }
@@ -547,4 +561,32 @@ fun NotificationsDialog(
             }
         }
     )
+}
+
+private fun resolveReleaseUrl(updateUrl: String): String {
+    if (updateUrl.isBlank()) return ReleaseLinks.LATEST_RELEASE_URL
+    val isValid = runCatching {
+        !Uri.parse(updateUrl).host.isNullOrBlank()
+    }.getOrDefault(false)
+    return if (isValid) updateUrl else ReleaseLinks.LATEST_RELEASE_URL
+}
+
+private fun openReleaseNotification(context: Context, releaseUrl: String) {
+    if (releaseUrl.endsWith(".apk", ignoreCase = true)) {
+        com.example.utils.AppUpdater.downloadAndInstallApk(context, releaseUrl)
+        return
+    }
+
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(releaseUrl)).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    }
+    try {
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        Toast.makeText(
+            context,
+            "Couldn't open release link. Please visit GitHub releases manually.",
+            Toast.LENGTH_LONG
+        ).show()
+    }
 }
