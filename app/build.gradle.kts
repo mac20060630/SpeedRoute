@@ -101,6 +101,7 @@ dependencies {
   implementation(libs.play.services.location)
   implementation(libs.retrofit)
   implementation("com.google.firebase:firebase-firestore")
+  implementation("com.google.firebase:firebase-auth")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.1")
   implementation("org.osmdroid:osmdroid-android:6.1.18")
   testImplementation(libs.androidx.compose.ui.test.junit4)

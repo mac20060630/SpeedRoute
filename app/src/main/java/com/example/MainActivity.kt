@@ -55,12 +55,16 @@ class MainActivity : ComponentActivity() {
             MyApplicationTheme(darkTheme = onboardingViewModel.isDarkTheme) {
                 Scaffold(modifier = Modifier.fillMaxSize(), containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
                     val navController = rememberNavController()
+                    val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+                    val startDest = if (auth.currentUser != null) "main" else "welcome"
                     NavHost(
                         navController = navController,
-                        startDestination = "welcome",
+                        startDestination = startDest,
                         modifier = Modifier.padding(innerPadding)
                     ) {
                         composable("welcome") { WelcomeScreen(navController) }
+                        composable("login") { com.example.ui.LoginScreen(navController, onboardingViewModel) }
+                        composable("register") { com.example.ui.RegistrationScreen(navController, onboardingViewModel) }
                         composable("unit_select") { UnitSelectScreen(navController, onboardingViewModel) }
                         composable("country_select") { CountrySelectScreen(navController, onboardingViewModel) }
                         composable("location_permission") { LocationPermissionScreen(navController, onboardingViewModel) }
@@ -68,7 +72,6 @@ class MainActivity : ComponentActivity() {
                         composable("vehicle_brand") { VehicleBrandScreen(navController, onboardingViewModel) }
                         composable("add_vehicles") { AddVehiclesScreen(navController, onboardingViewModel) }
                         composable("speed_camera") { SpeedCameraScreen(navController, onboardingViewModel) }
-                        composable("username") { UsernameScreen(navController, onboardingViewModel) }
                         composable("dob") { DOBScreen(navController, onboardingViewModel) }
                         composable("trust") { TrustScreen(navController) }
                         composable("main") {
@@ -103,22 +106,23 @@ class MainActivity : ComponentActivity() {
         }
         startService(intent)
         
-        // Save to Firestore
-        if (viewModel.username.isNotBlank()) {
+        // Save to Firestore using optimized schema
+        val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+        val user = auth.currentUser
+        if (user != null && viewModel.username.isNotBlank()) {
             val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
             val stats = TripManager.stats.value
             val userRecord = hashMapOf(
-                "username" to viewModel.username,
-                "country" to viewModel.country.name,
-                "vehicleBrand" to viewModel.vehicleBrand,
-                "topSpeed" to stats.topSpeedKmH,
-                "timestamp" to System.currentTimeMillis()
+                "u" to viewModel.username,
+                "c" to viewModel.country.name,
+                "v" to viewModel.vehicleBrand,
+                "ts" to stats.topSpeedKmH,
+                "t" to System.currentTimeMillis()
             )
             
-            // In a real app we might only update if it's a new personal record
             db.collection("leaderboard")
-                .document(viewModel.username)
-                .set(userRecord)
+                .document(user.uid)
+                .set(userRecord, com.google.firebase.firestore.SetOptions.merge())
         }
     }
 }

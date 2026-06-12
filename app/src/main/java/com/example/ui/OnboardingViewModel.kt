@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.tasks.await
 
 class OnboardingViewModel : ViewModel() {
@@ -27,6 +28,11 @@ class OnboardingViewModel : ViewModel() {
     var vehicleModel by mutableStateOf("Swift")
     
     var username by mutableStateOf("")
+    var email by mutableStateOf("")
+    var password by mutableStateOf("")
+    var authError by mutableStateOf("")
+    var isAuthenticating by mutableStateOf(false)
+    
     var dob by mutableStateOf("")
 
     var isCheckingUsername by mutableStateOf(false)
@@ -47,25 +53,74 @@ class OnboardingViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val db = FirebaseFirestore.getInstance()
-                // Assuming "users" collection exists and we check for a document with the username
-                val querySnapshot = db.collection("users")
-                    .whereEqualTo("username", username)
-                    .get()
-                    .await()
+                // Also check auth
+                // if we were to enforce globally unique usernames across auth
                 
-                if (querySnapshot.isEmpty) {
-                    isUsernameAvailable = true
-                    usernameCheckMessage = "Available!"
-                } else {
+                // Assuming "leaderboard" collection exists and we check for a document with the username
+                // Or maybe check another collection if we want unique usernames.
+                // Let's assume we allow duplicate usernames or handle it later.
+                // For now, if we want unique usernames, we check leaderboard:
+                val query = db.collection("leaderboard").whereEqualTo("u", username).get().await()
+                if (!query.isEmpty) {
                     isUsernameAvailable = false
-                    usernameCheckMessage = "Username taken"
+                    usernameCheckMessage = "Username is already taken"
+                } else {
+                    isUsernameAvailable = true
+                    usernameCheckMessage = "Username is available"
                 }
             } catch (e: Exception) {
-                // Ignore real errors and just allow them if network fails
-                isUsernameAvailable = true
-                usernameCheckMessage = "Available (Fallback)"
+                isUsernameAvailable = null
+                usernameCheckMessage = "Error checking username"
             } finally {
                 isCheckingUsername = false
+            }
+        }
+    }
+
+    fun registerUser(onSuccess: () -> Unit) {
+        if (email.isBlank() || password.isBlank() || username.isBlank()) {
+            authError = "All fields are required"
+            return
+        }
+        if (password.length < 6) {
+            authError = "Password must be at least 6 characters"
+            return
+        }
+        
+        isAuthenticating = true
+        authError = ""
+        
+        viewModelScope.launch {
+            try {
+                val auth = FirebaseAuth.getInstance()
+                auth.createUserWithEmailAndPassword(email, password).await()
+                onSuccess()
+            } catch (e: Exception) {
+                authError = e.message ?: "Registration failed"
+            } finally {
+                isAuthenticating = false
+            }
+        }
+    }
+
+    fun loginUser(onSuccess: () -> Unit) {
+        if (email.isBlank() || password.isBlank()) {
+            authError = "Email and password are required"
+            return
+        }
+        
+        isAuthenticating = true
+        authError = ""
+        
+        viewModelScope.launch {
+            try {
+                val auth = FirebaseAuth.getInstance()
+                auth.signInWithEmailAndPassword(email, password).await()
+                onSuccess()
+            } catch (e: Exception) {
+                authError = e.message ?: "Login failed"
+            } finally {
+                isAuthenticating = false
             }
         }
     }

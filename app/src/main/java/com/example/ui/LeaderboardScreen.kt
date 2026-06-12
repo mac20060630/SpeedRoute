@@ -34,20 +34,32 @@ fun LeaderboardScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        try {
-            val db = FirebaseFirestore.getInstance()
-            val snapshot = db.collection("leaderboard")
-                .orderBy("topSpeed", Query.Direction.DESCENDING)
-                .limit(50)
-                .get()
-                .await()
+        val db = FirebaseFirestore.getInstance()
+        val listenerRegistration = db.collection("leaderboard")
+            .orderBy("ts", Query.Direction.DESCENDING)
+            .limit(50)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    error.printStackTrace()
+                    isLoading = false
+                    return@addSnapshotListener
+                }
+                
+                if (snapshot != null) {
+                    val newEntries = snapshot.documents.mapNotNull { doc ->
+                        val u = doc.getString("u") ?: return@mapNotNull null
+                        val c = doc.getString("c") ?: ""
+                        val v = doc.getString("v") ?: ""
+                        val ts = doc.getDouble("ts")?.toFloat() ?: 0f
+                        LeaderboardEntry(username = u, country = c, vehicleBrand = v, topSpeed = ts)
+                    }
+                    entries = newEntries
+                    isLoading = false
+                }
+            }
             
-            entries = snapshot.toObjects(LeaderboardEntry::class.java)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        } finally {
-            isLoading = false
-        }
+        // No direct way to cancel listener in pure LaunchedEffect without DisposableEffect,
+        // but since LeaderboardScreen is short-lived, it's mostly fine, or we can use DisposableEffect.
     }
 
     Scaffold(

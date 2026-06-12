@@ -99,7 +99,17 @@ fun WelcomeScreen(navController: NavController) {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(bottom = 32.dp)
             )
-            ActionButton(text = "Get Started", onClick = { navController.navigate("unit_select") })
+            ActionButton(text = "Get Started", onClick = { navController.navigate("register") })
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedButton(
+                onClick = { navController.navigate("login") },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+                border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text("Log In", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            }
             Spacer(modifier = Modifier.height(32.dp))
             Text(
                 text = "By continuing you're accepting our Terms of Use and Privacy Notice",
@@ -522,33 +532,127 @@ fun SpeedCameraScreen(navController: NavController, viewModel: OnboardingViewMod
         }
         
         Spacer(modifier = Modifier.height(32.dp))
-        ActionButton(text = "Continue", onClick = { navController.navigate("username") }, enabled = viewModel.enableSpeedCameras != null)
+        ActionButton(text = "Continue", onClick = { navController.navigate("dob") }, enabled = viewModel.enableSpeedCameras != null)
     }
 }
 
 @Composable
-fun UsernameScreen(navController: NavController, viewModel: OnboardingViewModel) {
+fun LoginScreen(navController: NavController, viewModel: OnboardingViewModel) {
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp)) {
-        AppTopBar(navController, 8)
+        AppTopBar(navController, 1)
         Spacer(modifier = Modifier.height(32.dp))
         
-        Text("Choose your username", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text("Welcome Back", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(16.dp))
-        Text("This is how you'll appear on the leaderboards", color = Color.Gray, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text("Log in to track your trips", color = Color.Gray, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         
         Spacer(modifier = Modifier.height(32.dp))
-        Box(modifier = Modifier.size(96.dp).clip(CircleShape).background(Color.White).align(Alignment.CenterHorizontally)) {
-            Icon(Icons.Default.DirectionsCar, contentDescription = null, modifier = Modifier.size(64.dp).align(Alignment.Center), tint = Color.Black)
+        
+        OutlinedTextField(
+            value = viewModel.email,
+            onValueChange = { viewModel.email = it },
+            label = { Text("Email", color = Color.Gray) },
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Email),
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+            )
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        OutlinedTextField(
+            value = viewModel.password,
+            onValueChange = { viewModel.password = it },
+            label = { Text("Password", color = Color.Gray) },
+            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Password),
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+            )
+        )
+        
+        if (viewModel.authError.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(viewModel.authError, color = Color.Red, fontSize = 14.sp)
         }
+        
+        Spacer(modifier = Modifier.weight(1f))
+        
+        if (viewModel.isAuthenticating) {
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally), color = MaterialTheme.colorScheme.primary)
+        } else {
+            ActionButton(
+                text = "Log In", 
+                onClick = { 
+                    viewModel.loginUser {
+                        // Clear backstack and go to main
+                        navController.navigate("main") {
+                            popUpTo("welcome") { inclusive = true }
+                        }
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun RegistrationScreen(navController: NavController, viewModel: OnboardingViewModel) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp).verticalScroll(androidx.compose.foundation.rememberScrollState())) {
+        AppTopBar(navController, 1)
         Spacer(modifier = Modifier.height(32.dp))
+        
+        Text("Create an Account", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Join the leaderboards and save your trips", color = Color.Gray, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        OutlinedTextField(
+            value = viewModel.email,
+            onValueChange = { viewModel.email = it },
+            label = { Text("Email", color = Color.Gray) },
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Email),
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+            )
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        OutlinedTextField(
+            value = viewModel.password,
+            onValueChange = { viewModel.password = it },
+            label = { Text("Password", color = Color.Gray) },
+            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Password),
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+            )
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
         
         OutlinedTextField(
             value = viewModel.username,
             onValueChange = { viewModel.username = it; viewModel.isUsernameAvailable = null; viewModel.usernameCheckMessage = "" },
+            label = { Text("Username", color = Color.Gray) },
             leadingIcon = { Text("@", color = Color.Gray) },
             trailingIcon = { 
                 if (viewModel.isCheckingUsername) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color(0xFF5FC9C9))
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.primary)
                 } else if (viewModel.isUsernameAvailable == true) {
                     Icon(Icons.Default.Check, contentDescription = "Available", tint = Color.Green)
                 } else if (viewModel.isUsernameAvailable == false) {
@@ -558,13 +662,10 @@ fun UsernameScreen(navController: NavController, viewModel: OnboardingViewModel)
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Done),
             keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { viewModel.checkUsernameAvailability() }),
             modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFF1C1C1E),
-                unfocusedContainerColor = Color(0xFF1C1C1E),
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent
+                focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                unfocusedTextColor = MaterialTheme.colorScheme.onBackground
             )
         )
         
@@ -572,13 +673,27 @@ fun UsernameScreen(navController: NavController, viewModel: OnboardingViewModel)
             Spacer(modifier = Modifier.height(8.dp))
             Text(viewModel.usernameCheckMessage, color = if (viewModel.isUsernameAvailable == true) Color.Green else Color.Red, fontSize = 14.sp)
         }
+
+        if (viewModel.authError.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(viewModel.authError, color = Color.Red, fontSize = 14.sp)
+        }
         
-        Spacer(modifier = Modifier.weight(1f))
-        ActionButton(
-            text = "Continue", 
-            onClick = { navController.navigate("dob") },
-            enabled = viewModel.isUsernameAvailable == true
-        )
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        if (viewModel.isAuthenticating) {
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally), color = MaterialTheme.colorScheme.primary)
+        } else {
+            ActionButton(
+                text = "Continue", 
+                onClick = { 
+                    viewModel.registerUser {
+                        navController.navigate("unit_select")
+                    }
+                },
+                enabled = viewModel.username.isNotBlank() && viewModel.email.isNotBlank() && viewModel.password.isNotBlank()
+            )
+        }
     }
 }
 
