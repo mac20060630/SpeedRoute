@@ -53,6 +53,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Configuration.getInstance().load(this, getSharedPreferences("osmdroid", android.content.Context.MODE_PRIVATE))
+        Configuration.getInstance().userAgentValue = packageName
         enableEdgeToEdge()
         setContent {
             val onboardingViewModel: OnboardingViewModel = viewModel()
