@@ -6,6 +6,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.ui.WelcomeScreen
 import com.example.ui.SpeedCameraScreen
 import com.example.ui.TrustScreen
+import com.example.ui.OnboardingViewModel
 import com.example.ui.theme.MyApplicationTheme
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -37,7 +38,7 @@ class AppScreenshotsTest {
   fun capture_speed_camera_screen() {
     composeTestRule.setContent {
       MyApplicationTheme {
-        SpeedCameraScreen(navController = rememberNavController())
+        SpeedCameraScreen(navController = rememberNavController(), viewModel = OnboardingViewModel())
       }
     }
     composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/speed_camera_screen.png")
@@ -47,7 +48,7 @@ class AppScreenshotsTest {
   fun capture_trust_screen() {
     composeTestRule.setContent {
       MyApplicationTheme {
-        TrustScreen(navController = rememberNavController())
+        TrustScreen(navController = rememberNavController(), viewModel = OnboardingViewModel())
       }
     }
     composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/trust_screen.png")
