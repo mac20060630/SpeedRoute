@@ -15,8 +15,8 @@ android {
     applicationId = "Triprank.in"
     minSdk = 26
     targetSdk = 36
-    versionCode = 3
-    versionName = "1.2"
+    versionCode = 4
+    versionName = "1.3"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -59,7 +59,7 @@ android {
 }
 
 base {
-  archivesName.set("Speed Route V 1.1")
+  archivesName.set("Speed Route V 1.3")
 }
 
 // Configure the Secrets Gradle Plugin to use .env and .env.example files
