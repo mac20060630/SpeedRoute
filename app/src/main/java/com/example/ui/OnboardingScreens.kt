@@ -520,7 +520,6 @@ fun UsernameScreen(navController: NavController, viewModel: OnboardingViewModel)
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WheelPicker(
