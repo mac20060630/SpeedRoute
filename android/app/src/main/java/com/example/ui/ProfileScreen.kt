@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.LockReset
+import androidx.compose.material.icons.filled.TwoWheeler
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -122,6 +123,7 @@ fun ProfileScreen(navController: NavController, viewModel: OnboardingViewModel) 
             
             var editingField by remember { mutableStateOf<String?>(null) }
             var editValue by remember { mutableStateOf("") }
+            var showVehicleEditDialog by remember { mutableStateOf(false) }
             
             if (editingField != null) {
                 AlertDialog(
@@ -187,14 +189,35 @@ fun ProfileScreen(navController: NavController, viewModel: OnboardingViewModel) 
                     editValue = ""
                 }
             }
+            ProfileField("Primary Vehicle", "${if (viewModel.vehicleType == "Car") "🚗 Car" else "🏍️ Motorbike"} - ${viewModel.vehicleBrand} ${viewModel.vehicleModel}") {
+                showVehicleEditDialog = true
+            }
 
             Spacer(modifier = Modifier.height(40.dp))
             
+            if (showVehicleEditDialog) {
+                VehicleEditDialog(
+                    viewModel = viewModel,
+                    onDismiss = { showVehicleEditDialog = false },
+                    onSave = { type, brand, model ->
+                        viewModel.updateVehicleDetails(type, brand, model,
+                            onSuccess = {
+                                showVehicleEditDialog = false
+                                Toast.makeText(context, "Vehicle details updated", Toast.LENGTH_SHORT).show()
+                            },
+                            onError = { err ->
+                                Toast.makeText(context, err, Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    }
+                )
+            }
+            
             // Actions
             ProfileActionButton(
-                icon = Icons.Default.DirectionsCar,
-                text = "Add More Vehicles",
-                onClick = { navController.navigate("vehicle_brand") }
+                icon = if (viewModel.vehicleType == "Car") Icons.Default.DirectionsCar else Icons.Default.TwoWheeler,
+                text = "Change Vehicle Details",
+                onClick = { showVehicleEditDialog = true }
             )
             
             ProfileActionButton(
@@ -259,4 +282,213 @@ fun ProfileActionButton(icon: androidx.compose.ui.graphics.vector.ImageVector, t
             Text(text, color = if (isDestructive) Color(0xFFEF5350) else MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun VehicleEditDialog(
+    viewModel: OnboardingViewModel,
+    onDismiss: () -> Unit,
+    onSave: (String, String, String) -> Unit
+) {
+    var selectedType by remember { mutableStateOf(viewModel.vehicleType) }
+    var selectedBrand by remember { mutableStateOf(viewModel.vehicleBrand) }
+    var selectedModel by remember { mutableStateOf(viewModel.vehicleModel) }
+    var showOtherBrand by remember { mutableStateOf(viewModel.vehicleBrand !in (VehicleBrands.carBrands + VehicleBrands.bikeBrands) && viewModel.vehicleBrand.isNotEmpty()) }
+    var showOtherModel by remember { mutableStateOf(false) }
+
+    val brands = if (selectedType == "Car") VehicleBrands.carBrands else VehicleBrands.bikeBrands
+    val models = if (selectedType == "Car") {
+        VehicleBrands.carModels[if (showOtherBrand) "Other" else selectedBrand] ?: listOf("Other")
+    } else {
+        VehicleBrands.bikeModels[if (showOtherBrand) "Other" else selectedBrand] ?: listOf("Other")
+    }
+
+    var expandedBrand by remember { mutableStateOf(false) }
+    var expandedModel by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Vehicle Details", color = MaterialTheme.colorScheme.onBackground) },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Vehicle Type selector
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Card(
+                        modifier = Modifier.weight(1f).height(64.dp).clickable {
+                            selectedType = "Car"
+                            selectedBrand = VehicleBrands.carBrands.first()
+                            selectedModel = ""
+                            showOtherBrand = false
+                            showOtherModel = false
+                        },
+                        colors = CardDefaults.cardColors(containerColor = if (selectedType == "Car") Color(0xFF2C2C2E) else Color(0xFF1C1C1E)),
+                        border = if (selectedType == "Car") androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF5FC9C9)) else null
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(Icons.Default.DirectionsCar, contentDescription = null, tint = if (selectedType == "Car") Color.White else Color.LightGray)
+                            Text("Car", color = if (selectedType == "Car") Color.White else Color.LightGray, fontSize = 12.sp)
+                        }
+                    }
+                    Card(
+                        modifier = Modifier.weight(1f).height(64.dp).clickable {
+                            selectedType = "Motorbike"
+                            selectedBrand = VehicleBrands.bikeBrands.first()
+                            selectedModel = ""
+                            showOtherBrand = false
+                            showOtherModel = false
+                        },
+                        colors = CardDefaults.cardColors(containerColor = if (selectedType == "Motorbike") Color(0xFF2C2C2E) else Color(0xFF1C1C1E)),
+                        border = if (selectedType == "Motorbike") androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF5FC9C9)) else null
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(Icons.Default.TwoWheeler, contentDescription = null, tint = if (selectedType == "Motorbike") Color.White else Color.LightGray)
+                            Text("Motorbike", color = if (selectedType == "Motorbike") Color.White else Color.LightGray, fontSize = 12.sp)
+                        }
+                    }
+                }
+
+                // Brand Selector Dropdown
+                ExposedDropdownMenuBox(
+                    expanded = expandedBrand,
+                    onExpandedChange = { expandedBrand = !expandedBrand }
+                ) {
+                    OutlinedTextField(
+                        value = if (showOtherBrand) "Other" else selectedBrand,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Brand") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedBrand) },
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+                        )
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedBrand,
+                        onDismissRequest = { expandedBrand = false }
+                    ) {
+                        brands.forEach { brand ->
+                            DropdownMenuItem(
+                                text = { Text(brand) },
+                                onClick = {
+                                    if (brand == "Other") {
+                                        showOtherBrand = true
+                                        selectedBrand = ""
+                                    } else {
+                                        showOtherBrand = false
+                                        selectedBrand = brand
+                                    }
+                                    selectedModel = ""
+                                    showOtherModel = false
+                                    expandedBrand = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                if (showOtherBrand) {
+                    OutlinedTextField(
+                        value = selectedBrand,
+                        onValueChange = { selectedBrand = it },
+                        label = { Text("Enter brand name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+                        )
+                    )
+                }
+
+                // Model Selector Dropdown
+                ExposedDropdownMenuBox(
+                    expanded = expandedModel,
+                    onExpandedChange = { expandedModel = !expandedModel }
+                ) {
+                    OutlinedTextField(
+                        value = if (showOtherModel) "Other" else selectedModel,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Model") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedModel) },
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+                        )
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedModel,
+                        onDismissRequest = { expandedModel = false }
+                    ) {
+                        models.forEach { model ->
+                            DropdownMenuItem(
+                                text = { Text(model) },
+                                onClick = {
+                                    if (model == "Other") {
+                                        showOtherModel = true
+                                        selectedModel = ""
+                                    } else {
+                                        showOtherModel = false
+                                        selectedModel = model
+                                    }
+                                    expandedModel = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                if (showOtherModel || (showOtherBrand && selectedModel.isEmpty())) {
+                    OutlinedTextField(
+                        value = selectedModel,
+                        onValueChange = { selectedModel = it },
+                        label = { Text("Enter model name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+                        )
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(selectedType, selectedBrand, selectedModel) },
+                enabled = selectedBrand.isNotBlank() && selectedModel.isNotBlank()
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }

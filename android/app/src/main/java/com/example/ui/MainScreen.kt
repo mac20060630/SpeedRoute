@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -116,7 +118,14 @@ fun MainScreen(
                     onStartTracking = onStartTracking,
                     onStopTracking = onStopTracking,
                     viewModel = viewModel,
-                    onProfileClick = { mainNavController.navigate("profile") }
+                    onProfileClick = { mainNavController.navigate("profile") },
+                    onViewLeaderboard = {
+                        bottomNavController.navigate("leaderboard") {
+                            popUpTo(bottomNavController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
                 )
             }
             composable("stats") {
@@ -138,7 +147,8 @@ fun SpeedometerScreen(
     onStartTracking: () -> Unit,
     onStopTracking: () -> Unit,
     viewModel: OnboardingViewModel,
-    onProfileClick: () -> Unit = {}
+    onProfileClick: () -> Unit = {},
+    onViewLeaderboard: () -> Unit = {}
 ) {
     val permissions = mutableListOf(
         Manifest.permission.ACCESS_FINE_LOCATION,
@@ -154,6 +164,7 @@ fun SpeedometerScreen(
         if (!permissionsState.allPermissionsGranted) {
             permissionsState.launchMultiplePermissionRequest()
         }
+        viewModel.checkNotifications()
     }
 
     val stats by TripManager.stats.collectAsState()
@@ -189,6 +200,40 @@ fun SpeedometerScreen(
                 lineHeight = 36.sp,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
+            
+            // Notification Bell
+            var showNotificationsDialog by remember { mutableStateOf(false) }
+            val hasNotifications = viewModel.isNewVersionAvailable || viewModel.isHighScoreBeaten
+            
+            IconButton(
+                onClick = { showNotificationsDialog = true },
+                modifier = Modifier.align(Alignment.CenterEnd)
+            ) {
+                Box {
+                    Icon(
+                        imageVector = if (hasNotifications) Icons.Default.NotificationsActive else Icons.Default.Notifications,
+                        contentDescription = "Notifications",
+                        tint = if (hasNotifications) Color(0xFF5FC9C9) else MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    if (hasNotifications) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .background(Color.Red, CircleShape)
+                                .align(Alignment.TopEnd)
+                        )
+                    }
+                }
+            }
+            
+            if (showNotificationsDialog) {
+                NotificationsDialog(
+                    viewModel = viewModel,
+                    onDismiss = { showNotificationsDialog = false },
+                    onViewLeaderboard = onViewLeaderboard
+                )
+            }
         }
         
         // Circular Gauge
@@ -373,4 +418,93 @@ fun SpeedometerScreen(
         
         Spacer(modifier = Modifier.height(16.dp))
     }
+}
+
+@Composable
+fun NotificationsDialog(
+    viewModel: OnboardingViewModel,
+    onDismiss: () -> Unit,
+    onViewLeaderboard: () -> Unit
+) {
+    val context = LocalContext.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Notifications", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground) },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                val notificationsList = mutableListOf<@Composable () -> Unit>()
+
+                if (viewModel.isNewVersionAvailable) {
+                    notificationsList.add {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text("New Version Released", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, fontSize = 14.sp)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("Update to speed Route V1.1 is now available with new features and stability fixes.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = {
+                                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/"))
+                                        context.startActivity(intent)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.align(Alignment.End).height(36.dp)
+                                ) {
+                                    Text("Download", fontSize = 12.sp, color = Color.Black)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (viewModel.isHighScoreBeaten) {
+                    notificationsList.add {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text("High Score Beaten!", fontWeight = FontWeight.Bold, color = Color(0xFFEF5350), fontSize = 14.sp)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("Someone has beaten your top speed of ${String.format("%.0f", viewModel.userTopSpeed)} km/h with ${String.format("%.0f", viewModel.globalMaxSpeed)} km/h! Reclaim your rank now.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = onViewLeaderboard,
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.align(Alignment.End).height(36.dp)
+                                ) {
+                                    Text("View Rankings", fontSize = 12.sp, color = Color.Black)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (notificationsList.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
+                        Text("No new notifications.", color = Color.Gray)
+                    }
+                } else {
+                    notificationsList.forEach { notification ->
+                        notification()
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close", color = MaterialTheme.colorScheme.primary)
+            }
+        }
+    )
 }

@@ -36,6 +36,11 @@ class OnboardingViewModel : ViewModel() {
     var dob by mutableStateOf("")
     var profilePicBase64 by mutableStateOf<String?>(null)
 
+    var isNewVersionAvailable by mutableStateOf(false)
+    var isHighScoreBeaten by mutableStateOf(false)
+    var userTopSpeed by mutableStateOf(0f)
+    var globalMaxSpeed by mutableStateOf(0f)
+
     var isCheckingUsername by mutableStateOf(false)
     var isUsernameAvailable by mutableStateOf<Boolean?>(null)
     var usernameCheckMessage by mutableStateOf("")
@@ -147,6 +152,46 @@ class OnboardingViewModel : ViewModel() {
         }
     }
 
+    fun checkNotifications() {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        viewModelScope.launch {
+            try {
+                val db = FirebaseFirestore.getInstance()
+                
+                // 1. Check Version (simulate/get from app_metadata/version)
+                val versionDoc = db.collection("app_metadata").document("version").get().await()
+                if (versionDoc.exists()) {
+                    val latest = versionDoc.getString("latest_version") ?: "1.0"
+                    isNewVersionAvailable = latest != "1.0"
+                } else {
+                    db.collection("app_metadata").document("version").set(hashMapOf("latest_version" to "1.1"))
+                    isNewVersionAvailable = true
+                }
+
+                // 2. Check Leaderboard
+                val userLeadDoc = db.collection("leaderboard").document(uid).get().await()
+                val userSpeed = userLeadDoc.getDouble("ts")?.toFloat() ?: 0f
+                userTopSpeed = userSpeed
+
+                val maxLeadQuery = db.collection("leaderboard")
+                    .orderBy("ts", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .limit(1)
+                    .get()
+                    .await()
+                
+                if (!maxLeadQuery.isEmpty) {
+                    val maxSpeed = maxLeadQuery.documents.first().getDouble("ts")?.toFloat() ?: 0f
+                    globalMaxSpeed = maxSpeed
+                    isHighScoreBeaten = userSpeed > 0f && maxSpeed > userSpeed
+                } else {
+                    isHighScoreBeaten = false
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     fun fetchUserProfile() {
         val auth = FirebaseAuth.getInstance()
         val uid = auth.currentUser?.uid ?: return
@@ -159,6 +204,9 @@ class OnboardingViewModel : ViewModel() {
                     dob = doc.getString("d") ?: dob
                     email = doc.getString("e") ?: auth.currentUser?.email ?: ""
                     profilePicBase64 = doc.getString("p")
+                    vehicleType = doc.getString("vType") ?: vehicleType
+                    vehicleBrand = doc.getString("vBrand") ?: vehicleBrand
+                    vehicleModel = doc.getString("vModel") ?: vehicleModel
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -204,6 +252,31 @@ class OnboardingViewModel : ViewModel() {
         FirebaseAuth.getInstance().sendPasswordResetEmail(currentEmail)
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { onError(it.message ?: "Failed to send reset email") }
+    }
+
+    fun updateVehicleDetails(type: String, brand: String, model: String, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid == null) {
+            onError("User not logged in")
+            return
+        }
+        viewModelScope.launch {
+            try {
+                val db = FirebaseFirestore.getInstance()
+                val updates = hashMapOf<String, Any>(
+                    "vType" to type,
+                    "vBrand" to brand,
+                    "vModel" to model
+                )
+                db.collection("users").document(uid).update(updates).await()
+                vehicleType = type
+                vehicleBrand = brand
+                vehicleModel = model
+                onSuccess()
+            } catch (e: Exception) {
+                onError(e.message ?: "Failed to update vehicle details")
+            }
+        }
     }
 
     fun completeOnboarding(onSuccess: () -> Unit) {
