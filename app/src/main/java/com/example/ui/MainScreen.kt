@@ -41,6 +41,17 @@ fun MainScreen(
 ) {
     val bottomNavController = rememberNavController()
     
+    val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    
+    androidx.activity.compose.BackHandler(enabled = currentRoute != "track") {
+        bottomNavController.navigate("track") {
+            popUpTo(bottomNavController.graph.startDestinationId) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+    
     Scaffold(
         bottomBar = {
             NavigationBar(
@@ -113,7 +124,7 @@ fun MainScreen(
                 )
             }
             composable("leaderboard") {
-                LeaderboardScreen(navController = mainNavController)
+                LeaderboardScreen(navController = mainNavController, showBackButton = false)
             }
         }
     }
