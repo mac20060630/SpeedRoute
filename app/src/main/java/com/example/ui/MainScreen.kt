@@ -169,13 +169,16 @@ fun SpeedometerScreen(
             val startAngle = 150f
             val progressAngle = (speed / maxSpeed).coerceIn(0f, 1f) * sweepAngle
             
+            val onBackgroundColor = MaterialTheme.colorScheme.onBackground
+            val backgroundColor = MaterialTheme.colorScheme.background
+            
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val strokeWidth = 24.dp.toPx()
                 val radius = size.minDimension / 2 - strokeWidth / 2
                 
                 // Draw background arc with dashes
                 drawArc(
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.15f),
+                    color = onBackgroundColor.copy(alpha = 0.15f),
                     startAngle = startAngle,
                     sweepAngle = sweepAngle,
                     useCenter = false,
@@ -206,7 +209,7 @@ fun SpeedometerScreen(
                     val endY = center.y + (outerRadius * sin(angleRad)).toFloat()
                     
                     drawLine(
-                        color = MaterialTheme.colorScheme.background,
+                        color = backgroundColor,
                         start = Offset(startX, startY),
                         end = Offset(endX, endY),
                         strokeWidth = 3.dp.toPx()
