@@ -449,15 +449,27 @@ fun NotificationsDialog(
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text("Update to Speed Route V1.1 is now available with new features and stability fixes.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Button(
-                                    onClick = {
-                                        com.example.utils.AppUpdater.downloadAndInstallApk(context, viewModel.updateApkUrl)
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.align(Alignment.End).height(36.dp)
+                                Row(
+                                    horizontalArrangement = Arrangement.End,
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("Download", fontSize = 12.sp, color = Color.Black)
+                                    TextButton(
+                                        onClick = { viewModel.isNewVersionAvailable = false },
+                                        modifier = Modifier.height(36.dp)
+                                    ) {
+                                        Text("Dismiss", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Button(
+                                        onClick = {
+                                            com.example.utils.AppUpdater.downloadAndInstallApk(context, viewModel.updateApkUrl)
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.height(36.dp)
+                                    ) {
+                                        Text("Download", fontSize = 12.sp, color = Color.Black)
+                                    }
                                 }
                             }
                         }
@@ -476,13 +488,25 @@ fun NotificationsDialog(
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text("Someone has beaten your top speed of ${String.format("%.0f", viewModel.userTopSpeed)} km/h with ${String.format("%.0f", viewModel.globalMaxSpeed)} km/h! Reclaim your rank now.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Button(
-                                    onClick = onViewLeaderboard,
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.align(Alignment.End).height(36.dp)
+                                Row(
+                                    horizontalArrangement = Arrangement.End,
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("View Rankings", fontSize = 12.sp, color = Color.Black)
+                                    TextButton(
+                                        onClick = { viewModel.isHighScoreBeaten = false },
+                                        modifier = Modifier.height(36.dp)
+                                    ) {
+                                        Text("Dismiss", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Button(
+                                        onClick = onViewLeaderboard,
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.height(36.dp)
+                                    ) {
+                                        Text("View Rankings", fontSize = 12.sp, color = Color.Black)
+                                    }
                                 }
                             }
                         }
