@@ -105,6 +105,20 @@ fun MainScreen(
                         }
                     }
                 )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.Cloud, contentDescription = "Weather") },
+                    label = { Text("Weather") },
+                    selected = currentRoute == "weather",
+                    onClick = {
+                        if (currentRoute != "weather") {
+                            bottomNavController.navigate("weather") {
+                                popUpTo(bottomNavController.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    }
+                )
             }
         }
     ) { innerPadding ->
@@ -136,6 +150,9 @@ fun MainScreen(
             }
             composable("leaderboard") {
                 LeaderboardScreen(navController = mainNavController, showBackButton = false)
+            }
+            composable("weather") {
+                WeatherDestinationScreen()
             }
         }
     }
