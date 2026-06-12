@@ -596,6 +596,10 @@ fun LoginScreen(navController: NavController, viewModel: OnboardingViewModel) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(viewModel.authError, color = Color.Red, fontSize = 14.sp)
         }
+        if (viewModel.authMessage.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(viewModel.authMessage, color = Color(0xFF4CAF50), fontSize = 14.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        }
         
         Spacer(modifier = Modifier.weight(1f))
         
@@ -692,6 +696,10 @@ fun RegistrationScreen(navController: NavController, viewModel: OnboardingViewMo
         if (viewModel.authError.isNotEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(viewModel.authError, color = Color.Red, fontSize = 14.sp)
+        }
+        if (viewModel.authMessage.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(viewModel.authMessage, color = Color(0xFF4CAF50), fontSize = 14.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
         
         Spacer(modifier = Modifier.height(32.dp))

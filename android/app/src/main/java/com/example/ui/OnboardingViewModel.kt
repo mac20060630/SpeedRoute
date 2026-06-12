@@ -31,6 +31,7 @@ class OnboardingViewModel : ViewModel() {
     var email by mutableStateOf("")
     var password by mutableStateOf("")
     var authError by mutableStateOf("")
+    var authMessage by mutableStateOf("")
     var isAuthenticating by mutableStateOf(false)
     
     var dob by mutableStateOf("")
@@ -89,6 +90,10 @@ class OnboardingViewModel : ViewModel() {
             authError = "All fields are required"
             return
         }
+        if (!email.lowercase().endsWith("@gmail.com")) {
+            authError = "Please use an official Google email (@gmail.com)"
+            return
+        }
         if (password.length < 6) {
             authError = "Password must be at least 6 characters"
             return
@@ -96,13 +101,16 @@ class OnboardingViewModel : ViewModel() {
         
         isAuthenticating = true
         authError = ""
+        authMessage = ""
         
         viewModelScope.launch {
             try {
                 val auth = FirebaseAuth.getInstance()
                 val result = auth.createUserWithEmailAndPassword(email, password).await()
-                val uid = result.user?.uid
-                if (uid != null) {
+                val user = result.user
+                if (user != null) {
+                    user.sendEmailVerification().await()
+                    val uid = user.uid
                     val db = FirebaseFirestore.getInstance()
                     val userDoc = hashMapOf(
                         "u" to username,
@@ -110,8 +118,10 @@ class OnboardingViewModel : ViewModel() {
                         "e" to email
                     )
                     db.collection("users").document(uid).set(userDoc).await()
+                    
+                    auth.signOut()
+                    authMessage = "Verification email sent. Please check your inbox and then log in."
                 }
-                onSuccess()
             } catch (e: Exception) {
                 authError = e.message ?: "Registration failed"
             } finally {
@@ -128,12 +138,21 @@ class OnboardingViewModel : ViewModel() {
         
         isAuthenticating = true
         authError = ""
+        authMessage = ""
         
         viewModelScope.launch {
             try {
                 val auth = FirebaseAuth.getInstance()
                 val result = auth.signInWithEmailAndPassword(email, password).await()
-                val uid = result.user?.uid
+                val user = result.user
+                
+                if (user != null && !user.isEmailVerified) {
+                    authError = "Please verify your email address to log in."
+                    auth.signOut()
+                    return@launch
+                }
+                
+                val uid = user?.uid
                 if (uid != null) {
                     val db = FirebaseFirestore.getInstance()
                     val doc = db.collection("users").document(uid).get().await()
