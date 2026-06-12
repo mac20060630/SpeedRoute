@@ -71,7 +71,7 @@ class MainActivity : ComponentActivity() {
                         composable("vehicle_type") { VehicleTypeScreen(navController, onboardingViewModel) }
                         composable("vehicle_brand") { VehicleBrandScreen(navController, onboardingViewModel) }
                         composable("add_vehicles") { AddVehiclesScreen(navController, onboardingViewModel) }
-                        composable("speed_camera") { SpeedCameraScreen(navController) }
+                        composable("speed_camera") { SpeedCameraScreen(navController, onboardingViewModel) }
                         composable("username") { UsernameScreen(navController, onboardingViewModel) }
                         composable("dob") { DOBScreen(navController, onboardingViewModel) }
                         composable("trust") { TrustScreen(navController) }

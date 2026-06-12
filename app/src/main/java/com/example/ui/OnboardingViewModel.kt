@@ -14,6 +14,7 @@ class OnboardingViewModel : ViewModel() {
     var isDarkTheme by mutableStateOf(true)
 
     var speedUnit by mutableStateOf("km/h")
+    var enableSpeedCameras by mutableStateOf<Boolean?>(null)
     var country by mutableStateOf(Countries.list.first { it.name == "India" })
     var vehicleType by mutableStateOf("Car")
     

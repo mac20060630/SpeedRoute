@@ -421,7 +421,7 @@ fun AddVehiclesScreen(navController: NavController, viewModel: OnboardingViewMod
 }
 
 @Composable
-fun SpeedCameraScreen(navController: NavController) {
+fun SpeedCameraScreen(navController: NavController, viewModel: OnboardingViewModel) {
     Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(24.dp)) {
         AppTopBar(navController, 7)
         Spacer(modifier = Modifier.height(32.dp))
@@ -434,26 +434,29 @@ fun SpeedCameraScreen(navController: NavController) {
         Text("Enable speed camera detection?", color = Color.White, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(16.dp))
         
+        val isEnabled = viewModel.enableSpeedCameras == true
+        val isDisabled = viewModel.enableSpeedCameras == false
+        
         Button(
-            onClick = { /* enable */ },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2C2C2E)),
+            onClick = { viewModel.enableSpeedCameras = true },
+            colors = ButtonDefaults.buttonColors(containerColor = if (isEnabled) Color(0xFF5FC9C9) else Color(0xFF2C2C2E)),
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth().height(56.dp)
         ) {
-            Text("Yes, enable", color = Color.White, fontSize = 16.sp)
+            Text("Yes, enable", color = if (isEnabled) Color.Black else Color.White, fontSize = 16.sp)
         }
         Spacer(modifier = Modifier.height(12.dp))
         Button(
-            onClick = { /* disable */ },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1C1C1E)),
+            onClick = { viewModel.enableSpeedCameras = false },
+            colors = ButtonDefaults.buttonColors(containerColor = if (isDisabled) Color(0xFF5FC9C9) else Color(0xFF1C1C1E)),
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth().height(56.dp)
         ) {
-            Text("No thanks", color = Color.White, fontSize = 16.sp)
+            Text("No thanks", color = if (isDisabled) Color.Black else Color.White, fontSize = 16.sp)
         }
         
         Spacer(modifier = Modifier.height(32.dp))
-        ActionButton(text = "Continue", onClick = { navController.navigate("username") })
+        ActionButton(text = "Continue", onClick = { navController.navigate("username") }, enabled = viewModel.enableSpeedCameras != null)
     }
 }
 
