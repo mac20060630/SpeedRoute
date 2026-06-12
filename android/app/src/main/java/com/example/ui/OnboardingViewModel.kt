@@ -131,7 +131,7 @@ class OnboardingViewModel : ViewModel() {
                     
                     auth.signOut()
                     authMessage = if (verificationSent) {
-                        "Account created. Verification email sent. Please log in to continue."
+                        "Account created. Verification email sent. Check inbox/spam, then log in to continue."
                     } else {
                         "Account created. Verification email could not be sent right now. Please log in to continue."
                     }
@@ -161,7 +161,18 @@ class OnboardingViewModel : ViewModel() {
                 val user = result.user
                 
                 if (user != null && !user.isEmailVerified) {
-                    authMessage = "Email not verified yet. Logged in anyway."
+                    val verificationResent = try {
+                        user.sendEmailVerification().await()
+                        true
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Email verification resend failed for uid=${user.uid}", e)
+                        false
+                    }
+                    authMessage = if (verificationResent) {
+                        "Email not verified yet. A new verification email was sent. Check inbox/spam."
+                    } else {
+                        "Email not verified yet. Verification email could not be sent right now."
+                    }
                 }
                 
                 val uid = user?.uid
