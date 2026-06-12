@@ -1,5 +1,6 @@
 package com.example.ui
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -12,6 +13,9 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.tasks.await
 
 class OnboardingViewModel : ViewModel() {
+    companion object {
+        private const val TAG = "OnboardingViewModel"
+    }
     var isDarkTheme by mutableStateOf(true)
 
     var speedUnit by mutableStateOf("km/h")
@@ -109,9 +113,13 @@ class OnboardingViewModel : ViewModel() {
                 val result = auth.createUserWithEmailAndPassword(email, password).await()
                 val user = result.user
                 if (user != null) {
-                    val verificationSent = runCatching {
+                    val verificationSent = try {
                         user.sendEmailVerification().await()
-                    }.isSuccess
+                        true
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Email verification send failed for uid=${user.uid}", e)
+                        false
+                    }
                     val uid = user.uid
                     val db = FirebaseFirestore.getInstance()
                     val userDoc = hashMapOf(
@@ -123,9 +131,9 @@ class OnboardingViewModel : ViewModel() {
                     
                     auth.signOut()
                     authMessage = if (verificationSent) {
-                        "Account created. Verification email sent; you can log in now."
+                        "Account created. Verification email sent. Please log in to continue."
                     } else {
-                        "Account created. Verification email could not be sent right now; you can still log in."
+                        "Account created. Verification email could not be sent right now. Please log in to continue."
                     }
                 }
             } catch (e: Exception) {
