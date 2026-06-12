@@ -194,8 +194,8 @@ fun DashboardScreen(
                                 mapView.overlays.add(marker)
                                 
                                 val polyline = Polyline()
-                                polyline.color = android.graphics.Color.parseColor("#5FC9C9")
-                                polyline.width = 10f
+                                polyline.outlinePaint.color = android.graphics.Color.parseColor("#5FC9C9")
+                                polyline.outlinePaint.strokeWidth = 10f
                                 polyline.addPoint(geoPoint)
                                 mapView.overlays.add(polyline)
                                 

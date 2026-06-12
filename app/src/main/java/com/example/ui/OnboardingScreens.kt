@@ -166,7 +166,7 @@ fun CountrySelectScreen(navController: NavController, viewModel: OnboardingViewM
                 onValueChange = {},
                 readOnly = true,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                modifier = Modifier.menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Color(0xFF1C1C1E),
                     unfocusedContainerColor = Color(0xFF1C1C1E),
@@ -303,7 +303,7 @@ fun VehicleBrandScreen(navController: NavController, viewModel: OnboardingViewMo
                 onValueChange = {},
                 readOnly = true,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                modifier = Modifier.menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Color(0xFF1C1C1E),
                     unfocusedContainerColor = Color(0xFF1C1C1E),
