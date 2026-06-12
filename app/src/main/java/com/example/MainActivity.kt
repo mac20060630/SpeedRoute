@@ -192,6 +192,8 @@ fun DetailedStatsScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // Map View Card
+        var isAutoFollowing by remember { mutableStateOf(true) }
+
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             shape = RoundedCornerShape(16.dp),
@@ -200,55 +202,82 @@ fun DetailedStatsScreen(
                 .height(300.dp)
                 .padding(bottom = 16.dp)
         ) {
-            AndroidView(
-                modifier = Modifier.fillMaxSize(),
-                factory = { ctx ->
-                    MapView(ctx).apply {
-                        setTileSource(TileSourceFactory.MAPNIK)
-                        setMultiTouchControls(true)
-                        zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
-                        controller.setZoom(15.0)
-                        // Request that the parent does not intercept touch events on the map
-                        setOnTouchListener { v, event ->
-                            v.parent?.requestDisallowInterceptTouchEvent(true)
-                            false
+            Box(modifier = Modifier.fillMaxSize()) {
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { ctx ->
+                        MapView(ctx).apply {
+                            setTileSource(TileSourceFactory.MAPNIK)
+                            setMultiTouchControls(true)
+                            zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
+                            controller.setZoom(16.0)
+                            // Request that the parent does not intercept touch events on the map
+                            setOnTouchListener { v, event ->
+                                v.parent?.requestDisallowInterceptTouchEvent(true)
+                                // If the user touches the map, stop auto-following so they can pan freely
+                                if (event.action == android.view.MotionEvent.ACTION_DOWN) {
+                                    isAutoFollowing = false
+                                }
+                                false
+                            }
                         }
-                    }
-                },
-                update = { mapView ->
-                    if (stats.currentLat != null && stats.currentLng != null) {
-                        val geoPoint = GeoPoint(stats.currentLat!!, stats.currentLng!!)
-                        if (mapView.overlays.isEmpty() || stats.totalDistanceKm == 0f) {
+                    },
+                    update = { mapView ->
+                        if (stats.currentLat != null && stats.currentLng != null) {
+                            val geoPoint = GeoPoint(stats.currentLat!!, stats.currentLng!!)
+                            if (mapView.overlays.isEmpty() || stats.totalDistanceKm == 0f) {
+                                mapView.overlays.clear()
+                                val marker = Marker(mapView)
+                                marker.position = geoPoint
+                                marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                marker.title = "Current Location"
+                                mapView.overlays.add(marker)
+
+                                val polyline = Polyline()
+                                polyline.outlinePaint.color = android.graphics.Color.parseColor("#5FC9C9")
+                                polyline.outlinePaint.strokeWidth = 10f
+                                polyline.addPoint(geoPoint)
+                                mapView.overlays.add(polyline)
+
+                                mapView.controller.setCenter(geoPoint)
+                            } else {
+                                val marker = mapView.overlays.find { it is Marker } as? Marker
+                                val polyline = mapView.overlays.find { it is Polyline } as? Polyline
+
+                                marker?.position = geoPoint
+                                polyline?.addPoint(geoPoint)
+                                
+                                if (isAutoFollowing) {
+                                    mapView.controller.animateTo(geoPoint)
+                                }
+                            }
+                            mapView.invalidate()
+                        }
+                        if (!stats.isTracking && stats.totalDistanceKm == 0f) {
                             mapView.overlays.clear()
-                            val marker = Marker(mapView)
-                            marker.position = geoPoint
-                            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                            marker.title = "Current Location"
-                            mapView.overlays.add(marker)
-
-                            val polyline = Polyline()
-                            polyline.outlinePaint.color = android.graphics.Color.parseColor("#5FC9C9")
-                            polyline.outlinePaint.strokeWidth = 10f
-                            polyline.addPoint(geoPoint)
-                            mapView.overlays.add(polyline)
-
-                            mapView.controller.setCenter(geoPoint)
-                        } else {
-                            val marker = mapView.overlays.find { it is Marker } as? Marker
-                            val polyline = mapView.overlays.find { it is Polyline } as? Polyline
-
-                            marker?.position = geoPoint
-                            polyline?.addPoint(geoPoint)
-                            mapView.controller.animateTo(geoPoint)
+                            mapView.invalidate()
                         }
-                        mapView.invalidate()
                     }
-                    if (!stats.isTracking && stats.totalDistanceKm == 0f) {
-                        mapView.overlays.clear()
-                        mapView.invalidate()
-                    }
+                )
+
+                // "My Location" Floating Action Button
+                SmallFloatingActionButton(
+                    onClick = { 
+                        isAutoFollowing = true 
+                        if (stats.currentLat != null && stats.currentLng != null) {
+                            // We need to pass the zoom and position directly to the view if possible,
+                            // but setting isAutoFollowing = true will trigger recomposition and update block
+                        }
+                    },
+                    containerColor = if (isAutoFollowing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                    contentColor = if (isAutoFollowing) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp)
+                ) {
+                    Icon(Icons.Default.MyLocation, contentDescription = "Center Map")
                 }
-            )
+            }
         }
 
         Row(
@@ -322,10 +351,10 @@ fun DetailedStatsScreen(
         
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Box(modifier = Modifier.weight(1f)) {
-                StatCard(icon = Icons.AutoMirrored.Filled.ArrowBack, iconColor = Color(0xFF5C6BC0), title = "Left Turns", value = "${stats.leftTurns}")
+                StatCard(icon = Icons.Default.TurnLeft, iconColor = Color(0xFF5C6BC0), title = "Left Turns", value = "${stats.leftTurns}")
             }
             Box(modifier = Modifier.weight(1f)) {
-                StatCard(icon = Icons.AutoMirrored.Filled.ArrowForward, iconColor = Color(0xFFEF5350), title = "Right Turns", value = "${stats.rightTurns}")
+                StatCard(icon = Icons.Default.TurnRight, iconColor = Color(0xFFEF5350), title = "Right Turns", value = "${stats.rightTurns}")
             }
         }
 
