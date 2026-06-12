@@ -32,27 +32,13 @@ fun TripHistoryScreen(navController: NavController, viewModel: OnboardingViewMod
     var trips by remember { mutableStateOf<List<Trip>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+
     LaunchedEffect(Unit) {
-        val auth = FirebaseAuth.getInstance()
-        val uid = auth.currentUser?.uid
-        if (uid != null) {
-            try {
-                val db = FirebaseFirestore.getInstance()
-                val snapshot = db.collection("users").document(uid).collection("trips")
-                    .orderBy("timestamp", Query.Direction.DESCENDING)
-                    .get()
-                    .await()
-                
-                val loadedTrips = snapshot.documents.mapNotNull { doc ->
-                    val trip = doc.toObject(Trip::class.java)
-                    trip?.id = doc.id
-                    trip
-                }
-                trips = loadedTrips
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+        val loadedTrips = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            com.example.utils.LocalTripStorage.loadAllTrips(context)
         }
+        trips = loadedTrips
         isLoading = false
     }
 

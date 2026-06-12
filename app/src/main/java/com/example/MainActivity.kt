@@ -137,10 +137,10 @@ class MainActivity : ComponentActivity() {
                     .set(userRecord, com.google.firebase.firestore.SetOptions.merge())
             }
 
-            // Save Trip History
-            val tripRef = db.collection("users").document(user.uid).collection("trips").document()
+            // Save Trip History locally instead of Firestore
+            val tripId = java.util.UUID.randomUUID().toString()
             val trip = com.example.models.Trip(
-                id = tripRef.id,
+                id = tripId,
                 timestamp = System.currentTimeMillis(),
                 durationSeconds = stats.durationSeconds,
                 totalDistanceKm = stats.totalDistanceKm.toDouble(),
@@ -151,7 +151,7 @@ class MainActivity : ComponentActivity() {
                 hardBrakes = stats.brakeEvents,
                 routePoints = stats.routePoints
             )
-            tripRef.set(trip)
+            com.example.utils.LocalTripStorage.saveTrip(this, trip)
         }
         TripManager.stopTracking()
     }

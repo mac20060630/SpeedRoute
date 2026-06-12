@@ -33,21 +33,13 @@ fun TripDetailScreen(navController: NavController, tripId: String, viewModel: On
     var trip by remember { mutableStateOf<Trip?>(null) }
     var isLoading by remember { mutableStateOf(true) }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+
     LaunchedEffect(tripId) {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid
-        if (uid != null) {
-            try {
-                val db = FirebaseFirestore.getInstance()
-                val doc = db.collection("users").document(uid).collection("trips").document(tripId).get().await()
-                if (doc.exists()) {
-                    val loadedTrip = doc.toObject(Trip::class.java)
-                    loadedTrip?.id = doc.id
-                    trip = loadedTrip
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+        val loadedTrip = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            com.example.utils.LocalTripStorage.getTripById(context, tripId)
         }
+        trip = loadedTrip
         isLoading = false
     }
 
