@@ -5,8 +5,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -517,35 +521,101 @@ fun UsernameScreen(navController: NavController, viewModel: OnboardingViewModel)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun DOBScreen(navController: NavController, viewModel: OnboardingViewModel) {
-    var showDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = Calendar.getInstance().timeInMillis)
+fun WheelPicker(
+    items: List<String>,
+    initialIndex: Int,
+    onItemSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
+    val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
 
-    if (showDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        val formatter = SimpleDateFormat("MMM dd yyyy", Locale.getDefault())
-                        viewModel.dob = formatter.format(Date(it))
-                    }
-                    showDatePicker = false
-                }) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel")
-                }
-            }
-        ) {
-            DatePicker(state = datePickerState)
+    LaunchedEffect(listState.isScrollInProgress) {
+        if (!listState.isScrollInProgress) {
+            onItemSelected(listState.firstVisibleItemIndex)
         }
     }
 
+    LazyColumn(
+        state = listState,
+        flingBehavior = flingBehavior,
+        modifier = modifier.height(200.dp)
+    ) {
+        items(items.size + 4) { index ->
+            val actualIndex = index - 2
+            val isSelected = index == listState.firstVisibleItemIndex + 2
+            val item = if (actualIndex in items.indices) items[actualIndex] else ""
+            
+            Box(
+                modifier = Modifier.height(40.dp).fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = item,
+                    color = if (isSelected) Color.White else Color.DarkGray,
+                    fontSize = if (isSelected) 20.sp else 16.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun WheelDatePicker(
+    onDateSelected: (String) -> Unit
+) {
+    val months = listOf("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+    val days = (1..31).map { it.toString() }
+    val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+    val years = (currentYear - 100..currentYear).map { it.toString() }.reversed()
+
+    var selectedMonth by remember { mutableStateOf(months[5]) }
+    var selectedDay by remember { mutableStateOf(days[11]) }
+    var selectedYear by remember { mutableStateOf(years[currentYear - 2008]) }
+
+    LaunchedEffect(selectedMonth, selectedDay, selectedYear) {
+        onDateSelected("$selectedMonth $selectedDay, $selectedYear")
+    }
+
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .height(40.dp)
+                .background(Color(0xFF2C2C2E), RoundedCornerShape(8.dp))
+        )
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(0.9f),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            WheelPicker(
+                items = months,
+                initialIndex = 5,
+                onItemSelected = { selectedMonth = months[it] },
+                modifier = Modifier.weight(1.5f)
+            )
+            WheelPicker(
+                items = days,
+                initialIndex = 11,
+                onItemSelected = { selectedDay = days[it] },
+                modifier = Modifier.weight(1f)
+            )
+            WheelPicker(
+                items = years,
+                initialIndex = currentYear - 2008,
+                onItemSelected = { selectedYear = years[it] },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+fun DOBScreen(navController: NavController, viewModel: OnboardingViewModel) {
     Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(24.dp)) {
         AppTopBar(navController, 9)
         Spacer(modifier = Modifier.height(32.dp))
@@ -553,9 +623,8 @@ fun DOBScreen(navController: NavController, viewModel: OnboardingViewModel) {
         Text("When were you born?", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         
         Spacer(modifier = Modifier.weight(1f))
-        Box(modifier = Modifier.fillMaxWidth().height(200.dp).background(Color.Transparent).clickable { showDatePicker = true }, contentAlignment = Alignment.Center) {
-            Text(viewModel.dob.ifEmpty { "Select Date" }, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(Color(0xFF2C2C2E)).padding(horizontal = 32.dp, vertical = 8.dp))
-        }
+        
+        WheelDatePicker(onDateSelected = { viewModel.dob = it })
         
         Spacer(modifier = Modifier.weight(1f))
         ActionButton(text = "Continue", onClick = { navController.navigate("trust") })
