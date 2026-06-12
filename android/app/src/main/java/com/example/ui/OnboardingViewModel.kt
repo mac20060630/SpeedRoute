@@ -109,7 +109,9 @@ class OnboardingViewModel : ViewModel() {
                 val result = auth.createUserWithEmailAndPassword(email, password).await()
                 val user = result.user
                 if (user != null) {
-                    user.sendEmailVerification().await()
+                    val verificationSent = runCatching {
+                        user.sendEmailVerification().await()
+                    }.isSuccess
                     val uid = user.uid
                     val db = FirebaseFirestore.getInstance()
                     val userDoc = hashMapOf(
@@ -120,7 +122,11 @@ class OnboardingViewModel : ViewModel() {
                     db.collection("users").document(uid).set(userDoc).await()
                     
                     auth.signOut()
-                    authMessage = "Verification email sent. Please check your inbox and then log in."
+                    authMessage = if (verificationSent) {
+                        "Account created. Verification email sent; you can log in now."
+                    } else {
+                        "Account created. Verification email could not be sent right now; you can still log in."
+                    }
                 }
             } catch (e: Exception) {
                 authError = e.message ?: "Registration failed"
@@ -147,9 +153,7 @@ class OnboardingViewModel : ViewModel() {
                 val user = result.user
                 
                 if (user != null && !user.isEmailVerified) {
-                    authError = "Please verify your email address to log in."
-                    auth.signOut()
-                    return@launch
+                    authMessage = "Email not verified yet. Logged in anyway."
                 }
                 
                 val uid = user?.uid
