@@ -193,6 +193,7 @@ fun DetailedStatsScreen(
 
         // Map View Card
         var isAutoFollowing by remember { mutableStateOf(true) }
+        var mapViewRef by remember { mutableStateOf<MapView?>(null) }
 
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -207,6 +208,7 @@ fun DetailedStatsScreen(
                     modifier = Modifier.fillMaxSize(),
                     factory = { ctx ->
                         MapView(ctx).apply {
+                            mapViewRef = this
                             setTileSource(TileSourceFactory.MAPNIK)
                             setMultiTouchControls(true)
                             zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
@@ -265,8 +267,9 @@ fun DetailedStatsScreen(
                     onClick = { 
                         isAutoFollowing = true 
                         if (stats.currentLat != null && stats.currentLng != null) {
-                            // We need to pass the zoom and position directly to the view if possible,
-                            // but setting isAutoFollowing = true will trigger recomposition and update block
+                            val geoPoint = GeoPoint(stats.currentLat!!, stats.currentLng!!)
+                            mapViewRef?.controller?.setZoom(16.0)
+                            mapViewRef?.controller?.animateTo(geoPoint)
                         }
                     },
                     containerColor = if (isAutoFollowing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
