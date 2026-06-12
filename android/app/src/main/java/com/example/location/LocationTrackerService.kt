@@ -67,6 +67,16 @@ class LocationTrackerService : Service(), SensorEventListener {
                         Log.d(TAG, "Auto-start threshold reached (>5km/h). Starting tracking session.")
                         TripManager.startTracking()
                         autoStartPending = false
+                        
+                        // Update the foreground notification to reflect active tracking
+                        val notification = NotificationCompat.Builder(this@LocationTrackerService, CHANNEL_ID)
+                            .setContentTitle("Riding detected, tracking")
+                            .setContentText("Your trip is currently being recorded...")
+                            .setSmallIcon(R.mipmap.ic_launcher)
+                            .setOngoing(true)
+                            .build()
+                        val manager = getSystemService(NotificationManager::class.java)
+                        manager.notify(NOTIFICATION_ID, notification)
                     }
                     
                     TripManager.processLocation(location)
