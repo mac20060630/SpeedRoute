@@ -3,6 +3,7 @@ package com.example.ui
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -154,7 +155,8 @@ fun SpeedometerScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(androidx.compose.foundation.rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
