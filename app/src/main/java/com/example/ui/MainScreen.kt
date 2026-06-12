@@ -115,7 +115,8 @@ fun MainScreen(
                 SpeedometerScreen(
                     onStartTracking = onStartTracking,
                     onStopTracking = onStopTracking,
-                    viewModel = viewModel
+                    viewModel = viewModel,
+                    onProfileClick = { mainNavController.navigate("profile") }
                 )
             }
             composable("stats") {
@@ -135,7 +136,8 @@ fun MainScreen(
 fun SpeedometerScreen(
     onStartTracking: () -> Unit,
     onStopTracking: () -> Unit,
-    viewModel: OnboardingViewModel
+    viewModel: OnboardingViewModel,
+    onProfileClick: () -> Unit = {}
 ) {
     val permissions = mutableListOf(
         Manifest.permission.ACCESS_FINE_LOCATION,
@@ -170,15 +172,23 @@ fun SpeedometerScreen(
             .verticalScroll(androidx.compose.foundation.rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "Track your\ntrips",
-            color = MaterialTheme.colorScheme.onBackground,
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 24.dp, bottom = 32.dp),
-            lineHeight = 36.sp,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
+        Box(modifier = Modifier.fillMaxWidth()) {
+            IconButton(
+                onClick = onProfileClick,
+                modifier = Modifier.align(Alignment.CenterStart)
+            ) {
+                Icon(Icons.Default.AccountCircle, contentDescription = "Profile", tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(32.dp))
+            }
+            Text(
+                text = "Track your\ntrips",
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 24.dp, bottom = 32.dp).align(Alignment.Center),
+                lineHeight = 36.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+        }
         
         // Circular Gauge
         Box(

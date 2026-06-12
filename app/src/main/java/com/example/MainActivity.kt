@@ -56,7 +56,10 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize(), containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
                     val navController = rememberNavController()
                     val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
-                    val startDest = if (auth.currentUser != null) "main" else "welcome"
+                    val startDest = if (auth.currentUser != null) {
+                        LaunchedEffect(Unit) { onboardingViewModel.fetchUserProfile() }
+                        "main"
+                    } else "welcome"
                     NavHost(
                         navController = navController,
                         startDestination = startDest,
@@ -83,6 +86,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("leaderboard") { LeaderboardScreen(navController) }
+                        composable("profile") { com.example.ui.ProfileScreen(navController, onboardingViewModel) }
                     }
                 }
             }

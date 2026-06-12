@@ -34,6 +34,7 @@ class OnboardingViewModel : ViewModel() {
     var isAuthenticating by mutableStateOf(false)
     
     var dob by mutableStateOf("")
+    var profilePicBase64 by mutableStateOf<String?>(null)
 
     var isCheckingUsername by mutableStateOf(false)
     var isUsernameAvailable by mutableStateOf<Boolean?>(null)
@@ -93,7 +94,17 @@ class OnboardingViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val auth = FirebaseAuth.getInstance()
-                auth.createUserWithEmailAndPassword(email, password).await()
+                val result = auth.createUserWithEmailAndPassword(email, password).await()
+                val uid = result.user?.uid
+                if (uid != null) {
+                    val db = FirebaseFirestore.getInstance()
+                    val userDoc = hashMapOf(
+                        "u" to username,
+                        "d" to dob,
+                        "e" to email
+                    )
+                    db.collection("users").document(uid).set(userDoc).await()
+                }
                 onSuccess()
             } catch (e: Exception) {
                 authError = e.message ?: "Registration failed"
@@ -115,7 +126,18 @@ class OnboardingViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val auth = FirebaseAuth.getInstance()
-                auth.signInWithEmailAndPassword(email, password).await()
+                val result = auth.signInWithEmailAndPassword(email, password).await()
+                val uid = result.user?.uid
+                if (uid != null) {
+                    val db = FirebaseFirestore.getInstance()
+                    val doc = db.collection("users").document(uid).get().await()
+                    if (doc.exists()) {
+                        username = doc.getString("u") ?: ""
+                        dob = doc.getString("d") ?: ""
+                        email = doc.getString("e") ?: email
+                        profilePicBase64 = doc.getString("p")
+                    }
+                }
                 onSuccess()
             } catch (e: Exception) {
                 authError = e.message ?: "Login failed"
@@ -123,6 +145,65 @@ class OnboardingViewModel : ViewModel() {
                 isAuthenticating = false
             }
         }
+    }
+
+    fun fetchUserProfile() {
+        val auth = FirebaseAuth.getInstance()
+        val uid = auth.currentUser?.uid ?: return
+        viewModelScope.launch {
+            try {
+                val db = FirebaseFirestore.getInstance()
+                val doc = db.collection("users").document(uid).get().await()
+                if (doc.exists()) {
+                    username = doc.getString("u") ?: username
+                    dob = doc.getString("d") ?: dob
+                    email = doc.getString("e") ?: auth.currentUser?.email ?: ""
+                    profilePicBase64 = doc.getString("p")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun saveProfilePicture(base64: String, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid == null) {
+            onError("User not logged in")
+            return
+        }
+        viewModelScope.launch {
+            try {
+                FirebaseFirestore.getInstance().collection("users").document(uid)
+                    .set(hashMapOf("p" to base64), com.google.firebase.firestore.SetOptions.merge())
+                    .await()
+                profilePicBase64 = base64
+                onSuccess()
+            } catch (e: Exception) {
+                onError(e.message ?: "Failed to save profile picture")
+            }
+        }
+    }
+
+    fun logoutUser(onSuccess: () -> Unit) {
+        FirebaseAuth.getInstance().signOut()
+        username = ""
+        email = ""
+        password = ""
+        dob = ""
+        profilePicBase64 = null
+        onSuccess()
+    }
+
+    fun resetPassword(onSuccess: () -> Unit, onError: (String) -> Unit) {
+        val currentEmail = FirebaseAuth.getInstance().currentUser?.email ?: email
+        if (currentEmail.isBlank()) {
+            onError("No email found to reset password")
+            return
+        }
+        FirebaseAuth.getInstance().sendPasswordResetEmail(currentEmail)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onError(it.message ?: "Failed to send reset email") }
     }
 }
 
