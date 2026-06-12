@@ -21,7 +21,7 @@ struct WelcomeView: View {
                         .foregroundColor(.white)
                         .padding(.bottom, 32)
                     
-                    NavigationLink(destination: Text("Register View")) {
+                    NavigationLink(destination: MainTrackerView()) {
                         Text("Get Started")
                             .font(.headline)
                             .foregroundColor(.black)
@@ -32,7 +32,7 @@ struct WelcomeView: View {
                     }
                     .padding(.horizontal, 24)
                     
-                    NavigationLink(destination: Text("Login View")) {
+                    NavigationLink(destination: MainTrackerView()) {
                         Text("Log In")
                             .font(.headline)
                             .foregroundColor(.white)

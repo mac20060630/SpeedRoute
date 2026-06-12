@@ -161,16 +161,17 @@ class OnboardingViewModel : ViewModel() {
                 
                 // 1. Check Version (simulate/get from app_metadata/version)
                 val versionDoc = db.collection("app_metadata").document("version").get().await()
+                val currentVersion = com.example.BuildConfig.VERSION_NAME
                 if (versionDoc.exists()) {
-                    val latest = versionDoc.getString("latest_version") ?: "1.0"
-                    isNewVersionAvailable = latest != "1.0"
+                    val latest = versionDoc.getString("latest_version") ?: currentVersion
+                    isNewVersionAvailable = latest != currentVersion
                     updateApkUrl = versionDoc.getString("apk_url") ?: "https://github.com/"
                 } else {
                     db.collection("app_metadata").document("version").set(hashMapOf(
-                        "latest_version" to "1.1",
+                        "latest_version" to currentVersion,
                         "apk_url" to "https://github.com/"
                     ))
-                    isNewVersionAvailable = true
+                    isNewVersionAvailable = false
                     updateApkUrl = "https://github.com/"
                 }
 
