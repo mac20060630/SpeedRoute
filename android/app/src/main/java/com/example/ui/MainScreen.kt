@@ -2,6 +2,7 @@ package com.example.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,6 +31,9 @@ import com.example.location.TripManager
 import kotlin.math.cos
 import kotlin.math.sin
 import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
@@ -456,10 +460,15 @@ fun NotificationsDialog(
 
                 if (viewModel.isNewVersionAvailable) {
                     notificationsList.add {
+                        val releaseUrl = viewModel.updateApkUrl
+                            .takeUnless { it.isBlank() || it == "https://github.com/" }
+                            ?: "https://github.com/mac20060630/SpeedRoute/releases/latest"
                         Card(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                             shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { openReleaseNotification(context, releaseUrl) }
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text("New Version Released", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, fontSize = 14.sp)
@@ -479,13 +488,13 @@ fun NotificationsDialog(
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Button(
                                         onClick = {
-                                            com.example.utils.AppUpdater.downloadAndInstallApk(context, viewModel.updateApkUrl)
+                                            openReleaseNotification(context, releaseUrl)
                                         },
                                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                         shape = RoundedCornerShape(8.dp),
                                         modifier = Modifier.height(36.dp)
                                     ) {
-                                        Text("Download", fontSize = 12.sp, color = Color.Black)
+                                        Text("Open Release", fontSize = 12.sp, color = Color.Black)
                                     }
                                 }
                             }
@@ -547,4 +556,16 @@ fun NotificationsDialog(
             }
         }
     )
+}
+
+private fun openReleaseNotification(context: Context, releaseUrl: String) {
+    if (releaseUrl.endsWith(".apk", ignoreCase = true)) {
+        com.example.utils.AppUpdater.downloadAndInstallApk(context, releaseUrl)
+        return
+    }
+
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(releaseUrl)).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    }
+    context.startActivity(intent)
 }

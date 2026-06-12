@@ -41,7 +41,7 @@ class OnboardingViewModel : ViewModel() {
     var isHighScoreBeaten by mutableStateOf(false)
     var userTopSpeed by mutableStateOf(0f)
     var globalMaxSpeed by mutableStateOf(0f)
-    var updateApkUrl by mutableStateOf("https://github.com/")
+    var updateApkUrl by mutableStateOf("https://github.com/mac20060630/SpeedRoute/releases/latest")
 
     var isCheckingUsername by mutableStateOf(false)
     var isUsernameAvailable by mutableStateOf<Boolean?>(null)
@@ -184,14 +184,15 @@ class OnboardingViewModel : ViewModel() {
                 if (versionDoc.exists()) {
                     val latest = versionDoc.getString("latest_version") ?: currentVersion
                     isNewVersionAvailable = latest != currentVersion
-                    updateApkUrl = versionDoc.getString("apk_url") ?: "https://github.com/"
+                    updateApkUrl = versionDoc.getString("apk_url")
+                        ?: "https://github.com/mac20060630/SpeedRoute/releases/latest"
                 } else {
                     db.collection("app_metadata").document("version").set(hashMapOf(
                         "latest_version" to currentVersion,
-                        "apk_url" to "https://github.com/"
+                        "apk_url" to "https://github.com/mac20060630/SpeedRoute/releases/latest"
                     ))
                     isNewVersionAvailable = false
-                    updateApkUrl = "https://github.com/"
+                    updateApkUrl = "https://github.com/mac20060630/SpeedRoute/releases/latest"
                 }
 
                 // 2. Check Leaderboard
