@@ -59,7 +59,7 @@ android {
 }
 
 base {
-  archivesName.set("speed Route V 1.0")
+  archivesName.set("Speed Route V 1.0")
 }
 
 // Configure the Secrets Gradle Plugin to use .env and .env.example files

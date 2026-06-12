@@ -39,8 +39,8 @@ object AppUpdater {
         }
 
         val request = DownloadManager.Request(Uri.parse(downloadUrl)).apply {
-            setTitle("speed Route Update")
-            setDescription("Downloading latest version of speed Route")
+            setTitle("Speed Route Update")
+            setDescription("Downloading latest version of Speed Route")
             setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             setDestinationUri(Uri.fromFile(destinationFile))
         }
