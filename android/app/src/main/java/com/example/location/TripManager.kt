@@ -239,7 +239,19 @@ object TripManager {
             lastSpeedTime = currentTime
 
             val newRoutePoints = current.routePoints.toMutableList()
-            if (newRoutePoints.isEmpty() || lastLocation == null || location.distanceTo(lastLocation!!) > 50f) {
+            var shouldAddPoint = false
+            if (newRoutePoints.isEmpty()) {
+                shouldAddPoint = true
+            } else {
+                val lastPoint = newRoutePoints.last()
+                val results = FloatArray(1)
+                Location.distanceBetween(lastPoint.lat, lastPoint.lng, location.latitude, location.longitude, results)
+                if (results[0] > 15f) { // Save a point every 15 meters
+                    shouldAddPoint = true
+                }
+            }
+            
+            if (shouldAddPoint) {
                 newRoutePoints.add(com.example.models.TripPoint(location.latitude, location.longitude, speedKmh))
             }
 

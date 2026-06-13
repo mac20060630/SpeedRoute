@@ -117,9 +117,9 @@ fun TripDetailScreen(navController: NavController, tripId: String, viewModel: On
                                         val segment = Polyline()
                                         val avgSpeed = (p1.speedKmh + p2.speedKmh) / 2f
                                         segment.outlinePaint.color = when {
-                                            avgSpeed < 70 -> android.graphics.Color.parseColor("#5FC9C9")
-                                            avgSpeed < 140 -> android.graphics.Color.parseColor("#4CAF50")
-                                            avgSpeed < 210 -> android.graphics.Color.parseColor("#FFC107")
+                                            avgSpeed < 40 -> android.graphics.Color.parseColor("#5FC9C9")
+                                            avgSpeed < 80 -> android.graphics.Color.parseColor("#4CAF50")
+                                            avgSpeed < 150 -> android.graphics.Color.parseColor("#FFC107")
                                             else -> android.graphics.Color.parseColor("#F44336")
                                         }
                                         segment.outlinePaint.strokeWidth = 12f
@@ -213,10 +213,10 @@ fun TripDetailScreen(navController: NavController, tripId: String, viewModel: On
 @Composable
 fun SpeedDistributionCard(trip: Trip) {
     val totalPoints = trip.routePoints.size.coerceAtLeast(1)
-    val cyanCount = trip.routePoints.count { it.speedKmh < 70f }
-    val greenCount = trip.routePoints.count { it.speedKmh in 70f..140f }
-    val yellowCount = trip.routePoints.count { it.speedKmh in 140f..210f }
-    val redCount = trip.routePoints.count { it.speedKmh > 210f }
+    val cyanCount = trip.routePoints.count { it.speedKmh < 40f }
+    val greenCount = trip.routePoints.count { it.speedKmh in 40f..80f }
+    val yellowCount = trip.routePoints.count { it.speedKmh in 80f..150f }
+    val redCount = trip.routePoints.count { it.speedKmh > 150f }
 
     val cyanPct = (cyanCount * 100f / totalPoints)
     val greenPct = (greenCount * 100f / totalPoints)
@@ -260,13 +260,13 @@ fun SpeedDistributionCard(trip: Trip) {
 
             // Legends
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                LegendItem(Color(0xFF5FC9C9), "< 70 km/h", "${cyanPct.toInt()}%")
-                LegendItem(Color(0xFF4CAF50), "70-140 km/h", "${greenPct.toInt()}%")
+                LegendItem(Color(0xFF5FC9C9), "< 40 km/h", "${cyanPct.toInt()}%")
+                LegendItem(Color(0xFF4CAF50), "40-80 km/h", "${greenPct.toInt()}%")
             }
             Spacer(modifier = Modifier.height(16.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                LegendItem(Color(0xFFFFC107), "140-210 km/h", "${yellowPct.toInt()}%")
-                LegendItem(Color(0xFFF44336), "> 210 km/h", "${redPct.toInt()}%")
+                LegendItem(Color(0xFFFFC107), "80-150 km/h", "${yellowPct.toInt()}%")
+                LegendItem(Color(0xFFF44336), "> 150 km/h", "${redPct.toInt()}%")
             }
         }
     }
