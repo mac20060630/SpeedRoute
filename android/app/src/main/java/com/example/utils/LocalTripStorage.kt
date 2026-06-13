@@ -24,6 +24,14 @@ object LocalTripStorage {
         try {
             val json = adapter.toJson(trip)
             file.writeText(json)
+            
+            // Backup to persistent external storage (survives app uninstall)
+            val backupDir = File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOCUMENTS), "SpeedRouteTrips")
+            if (!backupDir.exists()) {
+                backupDir.mkdirs()
+            }
+            val backupFile = File(backupDir, "${trip.id}.json")
+            backupFile.writeText(json)
         } catch (e: Exception) {
             e.printStackTrace()
         }
