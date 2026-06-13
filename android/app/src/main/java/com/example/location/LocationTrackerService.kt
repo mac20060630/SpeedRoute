@@ -109,9 +109,9 @@ class LocationTrackerService : Service(), SensorEventListener {
             
         startForeground(NOTIFICATION_ID, notification)
         
-        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
-            .setMinUpdateIntervalMillis(500)
-            .setMaxUpdateDelayMillis(1500)
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1500)
+            .setMinUpdateIntervalMillis(1000)
+            .setMaxUpdateDelayMillis(3000) // Batch updates to save CPU wakeups while keeping accuracy
             .build()
 
         try {
@@ -129,16 +129,16 @@ class LocationTrackerService : Service(), SensorEventListener {
                 Looper.getMainLooper()
             )
             
-            // Register sensors with SENSOR_DELAY_GAME for better resolution
-            // This is important for accurate driving data
+            // Register sensors with SENSOR_DELAY_UI for great resolution while saving battery
+            // SENSOR_DELAY_UI (~16Hz) is enough for driving events, much better on battery than GAME (~50Hz)
             accelerometer?.let {
-                sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
-                Log.d(TAG, "Accelerometer registered with SENSOR_DELAY_GAME")
+                sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+                Log.d(TAG, "Accelerometer registered with SENSOR_DELAY_UI")
             } ?: Log.w(TAG, "No accelerometer sensor available!")
             
             gyroscope?.let {
-                sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
-                Log.d(TAG, "Gyroscope registered with SENSOR_DELAY_GAME")
+                sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+                Log.d(TAG, "Gyroscope registered with SENSOR_DELAY_UI")
             } ?: Log.w(TAG, "No gyroscope sensor available!")
             
             if (!isAuto) {
