@@ -346,38 +346,40 @@ fun DetailedStatsScreen(
                         }
                     },
                     update = { mapView ->
+                        if (!stats.isTracking && stats.totalDistanceKm == 0f) {
+                            val p = mapView.overlays.find { it is Polyline }
+                            if (p != null) {
+                                mapView.overlays.remove(p)
+                            }
+                        }
+
                         if (stats.currentLat != null && stats.currentLng != null) {
                             val geoPoint = GeoPoint(stats.currentLat!!, stats.currentLng!!)
-                            if (mapView.overlays.isEmpty() || stats.totalDistanceKm == 0f) {
-                                mapView.overlays.clear()
-                                val marker = Marker(mapView)
-                                marker.position = geoPoint
+                            
+                            var marker = mapView.overlays.find { it is Marker } as? Marker
+                            if (marker == null) {
+                                marker = Marker(mapView)
                                 marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                                 marker.title = "Current Location"
                                 mapView.overlays.add(marker)
-
-                                val polyline = Polyline()
-                                polyline.outlinePaint.color = android.graphics.Color.parseColor("#5FC9C9")
-                                polyline.outlinePaint.strokeWidth = 10f
-                                polyline.addPoint(geoPoint)
-                                mapView.overlays.add(polyline)
-
-                                mapView.controller.setCenter(geoPoint)
-                            } else {
-                                val marker = mapView.overlays.find { it is Marker } as? Marker
-                                val polyline = mapView.overlays.find { it is Polyline } as? Polyline
-
-                                marker?.position = geoPoint
-                                polyline?.addPoint(geoPoint)
-                                
-                                if (isAutoFollowing) {
-                                    mapView.controller.animateTo(geoPoint)
-                                }
                             }
-                            mapView.invalidate()
-                        }
-                        if (!stats.isTracking && stats.totalDistanceKm == 0f) {
-                            mapView.overlays.clear()
+                            marker.position = geoPoint
+
+                            if (stats.isTracking) {
+                                var polyline = mapView.overlays.find { it is Polyline } as? Polyline
+                                if (polyline == null) {
+                                    polyline = Polyline()
+                                    polyline.outlinePaint.color = android.graphics.Color.parseColor("#5FC9C9")
+                                    polyline.outlinePaint.strokeWidth = 10f
+                                    mapView.overlays.add(polyline)
+                                }
+                                polyline.addPoint(geoPoint)
+                            }
+                            
+                            if (isAutoFollowing) {
+                                mapView.controller.animateTo(geoPoint)
+                            }
+                            
                             mapView.invalidate()
                         }
                     }
