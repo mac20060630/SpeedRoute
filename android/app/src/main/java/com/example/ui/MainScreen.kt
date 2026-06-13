@@ -33,6 +33,12 @@ import kotlin.math.sin
 import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
+import android.location.LocationManager
+import android.provider.Settings
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import android.net.Uri
 import android.os.Build
 import android.widget.Toast
@@ -66,6 +72,33 @@ fun MainScreen(
                     modifier = Modifier.fillMaxWidth().height(50.dp)
                 ) {
                     Text("Update Now")
+                }
+            }
+        }
+        return
+    }
+
+    val isLocationOn = isLocationEnabled()
+    if (!isLocationOn) {
+        val context = LocalContext.current
+        Box(
+            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(Icons.Default.LocationOff, contentDescription = "Location Disabled", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.error)
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Location is Off", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Please enable location services in your device settings to continue using the app.", textAlign = androidx.compose.ui.text.style.TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.height(32.dp))
+                Button(
+                    onClick = { 
+                        context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                    },
+                    modifier = Modifier.fillMaxWidth().height(50.dp)
+                ) {
+                    Text("Turn On Location")
                 }
             }
         }
@@ -613,5 +646,52 @@ private fun openReleaseNotification(context: Context, releaseUrl: String) {
             "Couldn't open release link. Please visit GitHub releases manually.",
             Toast.LENGTH_LONG
         ).show()
+    }
+}
+
+@Composable
+fun isLocationEnabled(): Boolean {
+    val context = LocalContext.current
+    var isEnabled by remember { mutableStateOf(checkLocationEnabled(context)) }
+
+    DisposableEffect(context) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(c: Context?, intent: Intent?) {
+                if (intent?.action == LocationManager.PROVIDERS_CHANGED_ACTION) {
+                    isEnabled = checkLocationEnabled(context)
+                }
+            }
+        }
+        val filter = IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION)
+        context.registerReceiver(receiver, filter)
+
+        onDispose {
+            context.unregisterReceiver(receiver)
+        }
+    }
+    
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                isEnabled = checkLocationEnabled(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    return isEnabled
+}
+
+fun checkLocationEnabled(context: Context): Boolean {
+    val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        locationManager.isLocationEnabled
+    } else {
+        locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+        locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
     }
 }
