@@ -48,6 +48,7 @@ class OnboardingViewModel : ViewModel() {
     var userTopSpeed by mutableStateOf(0f)
     var globalMaxSpeed by mutableStateOf(0f)
     var updateApkUrl by mutableStateOf(ReleaseLinks.LATEST_RELEASE_URL)
+    var latestVersion by mutableStateOf("")
 
     var isCheckingUsername by mutableStateOf(false)
     var isUsernameAvailable by mutableStateOf<Boolean?>(null)
@@ -209,6 +210,7 @@ class OnboardingViewModel : ViewModel() {
                 val currentVersionCode = com.example.BuildConfig.VERSION_CODE.toLong()
                 if (versionDoc.exists()) {
                     val latest = versionDoc.getString("latest_version") ?: currentVersion
+                    latestVersion = latest
                     isNewVersionAvailable = latest != currentVersion
                     updateApkUrl = versionDoc.getString("apk_url")
                         ?: ReleaseLinks.LATEST_RELEASE_URL
@@ -221,6 +223,7 @@ class OnboardingViewModel : ViewModel() {
                         "minimum_version_code" to currentVersionCode,
                         "apk_url" to ReleaseLinks.LATEST_RELEASE_URL
                     ))
+                    latestVersion = currentVersion
                     isNewVersionAvailable = false
                     isUpdateMandatory = false
                     updateApkUrl = ReleaseLinks.LATEST_RELEASE_URL

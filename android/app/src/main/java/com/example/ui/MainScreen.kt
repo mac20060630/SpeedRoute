@@ -536,7 +536,7 @@ fun NotificationsDialog(
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text("New Version Released", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, fontSize = 14.sp)
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text("Update to Speed Route V1.1 is now available with new features and stability fixes.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                                Text("Update to Speed Route V${viewModel.latestVersion} is now available with new features and stability fixes.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Row(
                                     horizontalArrangement = Arrangement.End,
