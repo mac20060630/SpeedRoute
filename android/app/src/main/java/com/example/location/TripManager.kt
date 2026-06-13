@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.*
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -57,6 +58,7 @@ object TripManager {
     private var startTime: Long = 0
     private var stoppedTimeAccumulator: Long = 0
     private var isCurrentlyStopped = true
+    private var currentStopStartTime: Long? = null
     
     private var speed0StartTime: Long? = null
 
@@ -121,6 +123,7 @@ object TripManager {
         speed0StartTime = null
         stoppedTimeAccumulator = 0
         isCurrentlyStopped = true
+        currentStopStartTime = System.currentTimeMillis()
         sessionTotalStops = 0
         previousSpeedKmH = 0f
         lastSpeedTime = 0
@@ -206,11 +209,13 @@ object TripManager {
                 if (!isCurrentlyStopped) {
                     isCurrentlyStopped = true
                     sessionTotalStops++
+                    currentStopStartTime = currentTime
                     Log.d(TAG, "Vehicle stopped. Total stops: $sessionTotalStops")
                 }
                 newStoppedTime += (currentTime - lastTime)
             } else {
                 isCurrentlyStopped = false
+                currentStopStartTime = null
             }
             stoppedTimeAccumulator = newStoppedTime
 
@@ -275,6 +280,19 @@ object TripManager {
 
         lastLocation = location
         lastTime = currentTime
+        
+        // Auto-stop tracking if stationary for more than 20 minutes (1,200,000 ms)
+        if (isCurrentlyStopped && currentStopStartTime != null) {
+            val idleDuration = currentTime - currentStopStartTime!!
+            if (idleDuration > 1200000) {
+                Log.d(TAG, "User has been idle for > 20 mins. Auto-stopping tracking.")
+                // Send intent to LocationTrackerService to stop safely (which will also save the trip to local storage)
+                // We use a Coroutine so we don't hold up the location processing
+                kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                    stopTracking()
+                }
+            }
+        }
     }
 
     fun processSensorEvent(event: SensorEvent) {
