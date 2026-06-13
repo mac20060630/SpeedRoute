@@ -55,6 +55,7 @@ import com.example.location.AutoTrackingManager
 class MainActivity : ComponentActivity() {
     private val onboardingViewModel: com.example.ui.OnboardingViewModel by viewModels()
     private val UPDATE_REQUEST_CODE = 9001
+    private var allTimeTopSpeedCache = 0f
 
     private fun checkForPlayUpdate() {
         val appUpdateManager = com.google.android.play.core.appupdate.AppUpdateManagerFactory.create(this)
@@ -109,12 +110,43 @@ class MainActivity : ComponentActivity() {
         Configuration.getInstance().userAgentValue = packageName
         enableEdgeToEdge()
 
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val allTrips = com.example.utils.LocalTripStorage.loadAllTrips(this@MainActivity)
+            val maxSpeed = allTrips.maxOfOrNull { it.topSpeedKmH }?.toFloat() ?: 0f
+            allTimeTopSpeedCache = maxSpeed
+            
+            // Re-upload max speed to leaderboard immediately to restore any lost record
+            var retries = 0
+            while (onboardingViewModel.username.isBlank() && retries < 10) {
+                kotlinx.coroutines.delay(500)
+                retries++
+            }
+            
+            val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+            val user = auth.currentUser
+            if (user != null && onboardingViewModel.username.isNotBlank() && allTimeTopSpeedCache > 0f) {
+                 val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                 val userRecord = hashMapOf(
+                     "u" to onboardingViewModel.username,
+                     "c" to onboardingViewModel.country.name,
+                     "v" to onboardingViewModel.vehicleBrand,
+                     "ts" to allTimeTopSpeedCache,
+                     "t" to System.currentTimeMillis()
+                 )
+                 db.collection("leaderboard").document(user.uid)
+                     .set(userRecord, com.google.firebase.firestore.SetOptions.merge())
+            }
+        }
+
         lifecycleScope.launch {
             TripManager.stats
                 .map { it.topSpeedKmH }
                 .distinctUntilChanged()
                 .collect { topSpeed ->
                     if (TripManager.stats.value.isTracking && topSpeed > 0) {
+                        if (topSpeed > allTimeTopSpeedCache) {
+                            allTimeTopSpeedCache = topSpeed
+                        }
                         val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
                         val user = auth.currentUser
                         if (user != null && onboardingViewModel.username.isNotBlank()) {
@@ -123,7 +155,7 @@ class MainActivity : ComponentActivity() {
                                 "u" to onboardingViewModel.username,
                                 "c" to onboardingViewModel.country.name,
                                 "v" to onboardingViewModel.vehicleBrand,
-                                "ts" to topSpeed,
+                                "ts" to allTimeTopSpeedCache,
                                 "t" to System.currentTimeMillis()
                             )
                             db.collection("leaderboard").document(user.uid)
@@ -211,11 +243,13 @@ class MainActivity : ComponentActivity() {
             
             // Save to Leaderboard
             if (viewModel.username.isNotBlank()) {
+                val finalMaxSpeed = maxOf(stats.topSpeedKmH, allTimeTopSpeedCache)
+                allTimeTopSpeedCache = finalMaxSpeed
                 val userRecord = hashMapOf(
                     "u" to viewModel.username,
                     "c" to viewModel.country.name,
                     "v" to viewModel.vehicleBrand,
-                    "ts" to stats.topSpeedKmH,
+                    "ts" to finalMaxSpeed,
                     "t" to System.currentTimeMillis()
                 )
                 db.collection("leaderboard")
