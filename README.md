@@ -11,7 +11,7 @@
 
   <p>
     <a href="#-download-the-app"><img src="https://img.shields.io/badge/Download-APK-brightgreen?style=for-the-badge&logo=android" alt="Download APK" /></a>
-    <a href="https://github.com/mac20060630/SpeedRoute/releases"><img src="https://img.shields.io/badge/Release-v1.5-blue?style=for-the-badge&logo=github" alt="Release" /></a>
+    <a href="https://github.com/mac20060630/SpeedRoute/releases"><img src="https://img.shields.io/badge/Release-v1.9-blue?style=for-the-badge&logo=github" alt="Release" /></a>
     <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-100%25-purple?style=for-the-badge&logo=kotlin" alt="Kotlin" /></a>
     <a href="https://developer.android.com/studio"><img src="https://img.shields.io/badge/Android-Studio-3DDC84?style=for-the-badge&logo=android-studio" alt="Android Studio" /></a>
   </p>

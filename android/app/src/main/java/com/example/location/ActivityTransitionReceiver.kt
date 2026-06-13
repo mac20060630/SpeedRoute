@@ -25,8 +25,8 @@ class ActivityTransitionReceiver : BroadcastReceiver() {
                             Log.d("ActivityTransition", "Started moving. Auto-starting tracker.")
                             startTrackerService(context)
                         } else if (isStop) {
-                            Log.d("ActivityTransition", "Stopped moving. Auto-stopping tracker.")
-                            stopTrackerService(context)
+                            Log.d("ActivityTransition", "Stopped moving. Will wait for 30-min stationary timeout.")
+                            // Do not call stopTrackerService here; let TripManager handle it after 30 mins stationary.
                         }
                     }
                 }

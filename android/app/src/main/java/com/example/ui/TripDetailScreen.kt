@@ -196,12 +196,60 @@ fun TripDetailScreen(navController: NavController, tripId: String, viewModel: On
                     }
 
                     // Secondary stats
+                    val topCornerDisplay = if (viewModel.speedUnit == "mph") t.topCornerSpeedKmH * 0.621371 else t.topCornerSpeedKmH
+                    val cornerSpeedLabel = "Top Corner (${viewModel.speedUnit})"
+
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                         Box(modifier = Modifier.weight(1f)) {
                             StatCard(icon = Icons.Default.PanTool, iconColor = Color(0xFFFF9800), title = "Hard Brakes", value = "${t.hardBrakes}")
                         }
                         Box(modifier = Modifier.weight(1f)) {
                             StatCard(icon = Icons.Default.ArrowUpward, iconColor = Color(0xFF66BB6A), title = "Hard Accel", value = "${t.hardAccelerations}")
+                        }
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            StatCard(icon = Icons.Default.TurnLeft, iconColor = Color(0xFF29B6F6), title = "Left Turns", value = "${t.leftTurns}")
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            StatCard(icon = Icons.Default.TurnRight, iconColor = Color(0xFF29B6F6), title = "Right Turns", value = "${t.rightTurns}")
+                        }
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            StatCard(icon = Icons.Default.Timer, iconColor = Color(0xFFEC407A), title = "Stopped Time", value = "${t.stoppedTimeSeconds}s")
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            StatCard(icon = Icons.Default.StopCircle, iconColor = Color(0xFFEC407A), title = "Total Stops", value = "${t.totalStops}")
+                        }
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            StatCard(icon = Icons.Default.Speed, iconColor = Color(0xFFFFCA28), title = "0-100 Time", value = t.best0To100TimeSec?.let { String.format("%.1fs", it) } ?: "N/A")
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            StatCard(icon = Icons.Default.DirectionsCar, iconColor = Color(0xFFAB47BC), title = cornerSpeedLabel, value = String.format("%.1f", topCornerDisplay))
+                        }
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            StatCard(icon = Icons.AutoMirrored.Filled.TrendingUp, iconColor = Color(0xFF66BB6A), title = "Max Accel", value = String.format("%.1f m/s²", t.maxAcceleration))
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            StatCard(icon = Icons.AutoMirrored.Filled.TrendingDown, iconColor = Color(0xFFFF7043), title = "Max Decel", value = String.format("%.1f m/s²", t.maxDeceleration))
+                        }
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            StatCard(icon = Icons.Default.Bolt, iconColor = Color(0xFF26A69A), title = "Peak G-Force", value = String.format("%.2f G", t.peakGForce))
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            StatCard(icon = Icons.Default.SwapHoriz, iconColor = Color(0xFF8D6E63), title = "Lane Changes", value = "${t.laneChanges}")
                         }
                     }
                 }

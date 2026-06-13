@@ -10,6 +10,7 @@ data class Trip(
     val durationSeconds: Long = 0,
     val totalDistanceKm: Double = 0.0,
     val topSpeedKmH: Double = 0.0,
+    val best0To60TimeSec: Double? = null,
     val best0To100TimeSec: Double? = null,
     val leftTurns: Int = 0,
     val rightTurns: Int = 0,

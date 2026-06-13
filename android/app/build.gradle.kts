@@ -15,8 +15,8 @@ android {
     applicationId = "SpeedRoute.in"
     minSdk = 26
     targetSdk = 36
-    versionCode = 8
-    versionName = "1.8"
+    versionCode = 9
+    versionName = "1.9"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -59,7 +59,7 @@ android {
 }
 
 base {
-  archivesName.set("SpeedRoute-v1.6")
+  archivesName.set("SpeedRoute-v1.9")
 }
 
 // Configure the Secrets Gradle Plugin to use .env and .env.example files

@@ -52,6 +52,7 @@ object TripManager {
     val stats: StateFlow<TripStats> = _stats.asStateFlow()
 
     private var prefs: SharedPreferences? = null
+    private var appContext: Context? = null
 
     private var lastLocation: Location? = null
     private var lastTime: Long = 0
@@ -83,6 +84,7 @@ object TripManager {
 
     fun init(context: Context) {
         if (prefs == null) {
+            appContext = context.applicationContext
             prefs = context.getSharedPreferences("TripStatsPrefs", Context.MODE_PRIVATE)
             loadPersistentStats()
             Log.d(TAG, "TripManager initialized")
@@ -281,15 +283,21 @@ object TripManager {
         lastLocation = location
         lastTime = currentTime
         
-        // Auto-stop tracking if stationary for more than 20 minutes (1,200,000 ms)
+        // Auto-stop tracking if stationary for more than 30 minutes (1,800,000 ms)
         if (isCurrentlyStopped && currentStopStartTime != null) {
             val idleDuration = currentTime - currentStopStartTime!!
-            if (idleDuration > 1200000) {
-                Log.d(TAG, "User has been idle for > 20 mins. Auto-stopping tracking.")
+            if (idleDuration > 1800000) {
+                Log.d(TAG, "User has been idle for > 30 mins. Auto-stopping tracking.")
                 // Send intent to LocationTrackerService to stop safely (which will also save the trip to local storage)
                 // We use a Coroutine so we don't hold up the location processing
                 kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.Main) {
                     stopTracking()
+                    appContext?.let { ctx ->
+                        val serviceIntent = android.content.Intent(ctx, com.example.location.LocationTrackerService::class.java).apply {
+                            action = com.example.location.LocationTrackerService.ACTION_STOP
+                        }
+                        ctx.startService(serviceIntent)
+                    }
                 }
             }
         }

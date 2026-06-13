@@ -32,6 +32,9 @@ class LocationTrackerService : Service(), SensorEventListener {
     private var gyroscope: Sensor? = null
 
     private var autoStartPending = false
+    
+    private var lastLocationForSpeed: android.location.Location? = null
+    private var lastLocationTime: Long = 0
 
     companion object {
         const val ACTION_START = "ACTION_START"
@@ -60,7 +63,18 @@ class LocationTrackerService : Service(), SensorEventListener {
             override fun onLocationResult(locationResult: LocationResult) {
                 super.onLocationResult(locationResult)
                 locationResult.lastLocation?.let { location ->
-                    val speedKmh = if (location.hasSpeed() && location.speed >= 0f) location.speed * 3.6f else 0f
+                    var speedKmh = if (location.hasSpeed() && location.speed >= 0f) location.speed * 3.6f else 0f
+                    
+                    if (speedKmh == 0f && lastLocationForSpeed != null) {
+                        val distance = location.distanceTo(lastLocationForSpeed!!)
+                        val timeDiff = (System.currentTimeMillis() - lastLocationTime) / 1000f
+                        if (timeDiff > 0f) {
+                            speedKmh = (distance / timeDiff) * 3.6f
+                        }
+                    }
+                    lastLocationForSpeed = location
+                    lastLocationTime = System.currentTimeMillis()
+                    
                     Log.d(TAG, "Location update: lat=${location.latitude}, lng=${location.longitude}, speedKmh=$speedKmh")
                     
                     if (autoStartPending && speedKmh > 5.0f) {
