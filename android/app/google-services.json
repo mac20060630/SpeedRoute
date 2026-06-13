@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "525374452313",
-    "project_id": "triprank-in",
-    "storage_bucket": "triprank-in.firebasestorage.app"
+    "project_number": "308733024650",
+    "project_id": "speedroute-c2793",
+    "storage_bucket": "speedroute-c2793.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:525374452313:android:ec4375cf45c93947abf748",
+        "mobilesdk_app_id": "1:308733024650:android:c082ead4a9c6b3ea4b1073",
         "android_client_info": {
-          "package_name": "Triprank.in"
+          "package_name": "SpeedRoute.in"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyB8iP5xsUmq5yzNCT3C1Zj-qJy09Nynhw4"
+          "current_key": "AIzaSyCgbS9YBLrkYYsTomORtD0UStBrTi9NGCo"
         }
       ],
       "services": {

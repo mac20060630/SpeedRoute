@@ -3,7 +3,7 @@
   
   <br/>
   
-  <h1>Triprank (Speed Route)</h1>
+  <h1>SpeedRoute</h1>
   
   <p>
     <strong>The intelligent, AI-powered travel and navigation assistant.</strong>
@@ -11,7 +11,7 @@
 
   <p>
     <a href="#-download-the-app"><img src="https://img.shields.io/badge/Download-APK-brightgreen?style=for-the-badge&logo=android" alt="Download APK" /></a>
-    <a href="https://github.com/your-username/triprank/releases"><img src="https://img.shields.io/badge/Release-v1.5-blue?style=for-the-badge&logo=github" alt="Release" /></a>
+    <a href="https://github.com/mac20060630/SpeedRoute/releases"><img src="https://img.shields.io/badge/Release-v1.5-blue?style=for-the-badge&logo=github" alt="Release" /></a>
     <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-100%25-purple?style=for-the-badge&logo=kotlin" alt="Kotlin" /></a>
     <a href="https://developer.android.com/studio"><img src="https://img.shields.io/badge/Android-Studio-3DDC84?style=for-the-badge&logo=android-studio" alt="Android Studio" /></a>
   </p>
@@ -20,7 +20,7 @@
 ---
 
 <p align="center">
-  Triprank (formerly Speed Route) is designed to help you rank, plan, and navigate your daily commutes and trips efficiently using cutting-edge real-time tracking and open-source intelligence.
+  SpeedRoute is designed to help you rank, plan, and navigate your daily commutes and trips efficiently using cutting-edge real-time tracking and open-source intelligence.
 </p>
 
 ---
@@ -37,7 +37,7 @@
 
 ## ✨ Key Features
 
-Navigating daily traffic and planning trips can be overwhelming. Triprank solves this by providing a smart mapping interface powered by OpenStreetMap that goes beyond simple directions.
+Navigating daily traffic and planning trips can be overwhelming. SpeedRoute solves this by providing a smart mapping interface powered by OpenStreetMap that goes beyond simple directions.
 
 - 🧠 **Smart Planning:** Helps you evaluate and rank the best routes or destinations.
 - ⚡ **Real-Time Context:** Keeps you informed about speed cameras, traffic, and local travel constraints.
@@ -49,11 +49,11 @@ Navigating daily traffic and planning trips can be overwhelming. Triprank solves
 
 ## 🇮🇳 Tailored for Indian Users
 
-Triprank has been specifically modified and localized from the ground up to perfectly suit the needs of users in India:
+SpeedRoute has been specifically modified and localized from the ground up to perfectly suit the needs of users in India:
 
 > **Default Regional Configuration:** The app defaults to **India** as the primary country, immediately aligning currency, units (Metric system / KMPH), and regional defaults to the Indian context.
 
-> **Vehicle Customization:** Indian roads are incredibly diverse. Triprank supports setting specific vehicle types such as **2-Wheelers**, which is crucial for accurate ETA and route calculations in dense Indian cities.
+> **Vehicle Customization:** Indian roads are incredibly diverse. SpeedRoute supports setting specific vehicle types such as **2-Wheelers**, which is crucial for accurate ETA and route calculations in dense Indian cities.
 
 > **Speed Camera & Safety Alerts:** Configured to highlight speed cameras and safety zones typical of Indian highways and city junctions, helping you avoid fines and drive safely.
 
@@ -63,7 +63,7 @@ Triprank has been specifically modified and localized from the ground up to perf
 
 ## 🚀 Download the App
 
-You don't need to build from source to use Triprank! 
+You don't need to build from source to use SpeedRoute! 
 
 You can directly download the compiled Android app and install it on your device:
 
@@ -87,7 +87,7 @@ This app is built using modern Android development practices:
 
 ## 💻 Run Locally (For Developers)
 
-Ready to contribute or see how Triprank works under the hood?
+Ready to contribute or see how SpeedRoute works under the hood?
 
 ### Prerequisites
 - [Android Studio](https://developer.android.com/studio) (Latest Version recommended)
@@ -106,7 +106,7 @@ Ready to contribute or see how Triprank works under the hood?
 
 ## 🤝 Contributing
 
-We love contributions! If you'd like to help make Triprank even better:
+We love contributions! If you'd like to help make SpeedRoute even better:
 
 1. Fork the project.
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
@@ -117,5 +117,5 @@ We love contributions! If you'd like to help make Triprank even better:
 ---
 
 <div align="center">
-  <p>Built with ❤️ by the Triprank Team</p>
+  <p>Built with ❤️ by the SpeedRoute Team</p>
 </div>
