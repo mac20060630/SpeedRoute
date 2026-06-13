@@ -43,6 +43,7 @@ class OnboardingViewModel : ViewModel() {
     var profilePicBase64 by mutableStateOf<String?>(null)
 
     var isNewVersionAvailable by mutableStateOf(false)
+    var isUpdateMandatory by mutableStateOf(false)
     var isHighScoreBeaten by mutableStateOf(false)
     var userTopSpeed by mutableStateOf(0f)
     var globalMaxSpeed by mutableStateOf(0f)
@@ -205,17 +206,23 @@ class OnboardingViewModel : ViewModel() {
                 // 1. Check Version (simulate/get from app_metadata/version)
                 val versionDoc = db.collection("app_metadata").document("version").get().await()
                 val currentVersion = com.example.BuildConfig.VERSION_NAME
+                val currentVersionCode = com.example.BuildConfig.VERSION_CODE.toLong()
                 if (versionDoc.exists()) {
                     val latest = versionDoc.getString("latest_version") ?: currentVersion
                     isNewVersionAvailable = latest != currentVersion
                     updateApkUrl = versionDoc.getString("apk_url")
                         ?: ReleaseLinks.LATEST_RELEASE_URL
+                    
+                    val minRequiredCode = versionDoc.getLong("minimum_version_code") ?: 0L
+                    isUpdateMandatory = currentVersionCode < minRequiredCode
                 } else {
                     db.collection("app_metadata").document("version").set(hashMapOf(
                         "latest_version" to currentVersion,
+                        "minimum_version_code" to currentVersionCode,
                         "apk_url" to ReleaseLinks.LATEST_RELEASE_URL
                     ))
                     isNewVersionAvailable = false
+                    isUpdateMandatory = false
                     updateApkUrl = ReleaseLinks.LATEST_RELEASE_URL
                 }
 

@@ -47,6 +47,31 @@ fun MainScreen(
     onStopTracking: () -> Unit,
     viewModel: OnboardingViewModel
 ) {
+    if (viewModel.isUpdateMandatory) {
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val releaseUrl = resolveReleaseUrl(viewModel.updateApkUrl)
+        Box(
+            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(androidx.compose.material.icons.Icons.Default.Warning, contentDescription = "Update Required", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.error)
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Update Required", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("This version of the app is no longer supported. Please download the latest version to continue.", textAlign = androidx.compose.ui.text.style.TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.height(32.dp))
+                Button(
+                    onClick = { com.example.utils.AppUpdater.downloadAndInstallApk(context, releaseUrl) },
+                    modifier = Modifier.fillMaxWidth().height(50.dp)
+                ) {
+                    Text("Update Now")
+                }
+            }
+        }
+        return
+    }
+
     val bottomNavController = rememberNavController()
     
     val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
