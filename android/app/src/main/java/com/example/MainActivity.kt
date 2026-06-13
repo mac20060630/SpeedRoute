@@ -269,6 +269,13 @@ class MainActivity : ComponentActivity() {
                 leftTurns = stats.leftTurns,
                 rightTurns = stats.rightTurns,
                 hardBrakes = stats.brakeEvents,
+                stoppedTimeSeconds = stats.stoppedTimeSeconds,
+                maxAcceleration = stats.maxAcceleration.toDouble(),
+                maxDeceleration = stats.maxDeceleration.toDouble(),
+                peakGForce = stats.peakGForce.toDouble(),
+                topCornerSpeedKmH = stats.topCornerSpeedKmH.toDouble(),
+                totalStops = stats.totalStops,
+                laneChanges = stats.laneChanges,
                 routePoints = stats.routePoints
             )
             com.example.utils.LocalTripStorage.saveTrip(this, trip)
@@ -366,6 +373,8 @@ fun DetailedStatsScreen(
                             mapViewRef = this
                             setTileSource(TileSourceFactory.MAPNIK)
                             setMultiTouchControls(true)
+                            maxZoomLevel = 22.0
+                            minZoomLevel = 4.0
                             zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
                             controller.setZoom(16.0)
                             // Request that the parent does not intercept touch events on the map

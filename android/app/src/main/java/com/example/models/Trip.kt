@@ -15,6 +15,13 @@ data class Trip(
     val rightTurns: Int = 0,
     val hardBrakes: Int = 0,
     val hardAccelerations: Int = 0,
+    val stoppedTimeSeconds: Long = 0,
+    val maxAcceleration: Double = 0.0,
+    val maxDeceleration: Double = 0.0,
+    val peakGForce: Double = 0.0,
+    val topCornerSpeedKmH: Double = 0.0,
+    val totalStops: Int = 0,
+    val laneChanges: Int = 0,
     val routePoints: List<TripPoint> = emptyList()
 )
 
