@@ -265,6 +265,7 @@ class MainActivity : ComponentActivity() {
                 durationSeconds = stats.durationSeconds,
                 totalDistanceKm = stats.totalDistanceKm.toDouble(),
                 topSpeedKmH = stats.topSpeedKmH.toDouble(),
+                best0To60TimeSec = stats.best0To60TimeSec?.toDouble(),
                 best0To100TimeSec = stats.best0To100TimeSec?.toDouble(),
                 leftTurns = stats.leftTurns,
                 rightTurns = stats.rightTurns,
@@ -531,10 +532,16 @@ fun DetailedStatsScreen(
             title = "Top Speed", value = String.format("%.0f", topSpeedDisplay), unit = viewModel.speedUnit
         )
         
-        val accelLabel = if (viewModel.speedUnit == "mph") "Best 0-60 mph time" else "Best 0-100 km/h time"
+        val accel100Label = if (viewModel.speedUnit == "mph") "Best 0-62 mph time" else "Best 0-100 km/h time"
         WideStatCard(
             icon = Icons.Default.Timer, iconColor = Color(0xFFE53935),
-            title = accelLabel, value = if (stats.best0To100TimeSec != null) String.format("%.1f s", stats.best0To100TimeSec) else "-"
+            title = accel100Label, value = if (stats.best0To100TimeSec != null) String.format("%.1f s", stats.best0To100TimeSec) else "-"
+        )
+
+        val accel60Label = if (viewModel.speedUnit == "mph") "Best 0-37 mph time" else "Best 0-60 km/h time"
+        WideStatCard(
+            icon = Icons.Default.Timer, iconColor = Color(0xFFE53935),
+            title = accel60Label, value = if (stats.best0To60TimeSec != null) String.format("%.1f s", stats.best0To60TimeSec) else "-"
         )
         
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {

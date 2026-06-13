@@ -7,6 +7,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -228,10 +230,19 @@ fun TripDetailScreen(navController: NavController, tripId: String, viewModel: On
 
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                         Box(modifier = Modifier.weight(1f)) {
-                            StatCard(icon = Icons.Default.Speed, iconColor = Color(0xFFFFCA28), title = "0-100 Time", value = t.best0To100TimeSec?.let { String.format("%.1fs", it) } ?: "N/A")
+                            StatCard(icon = Icons.Default.Speed, iconColor = Color(0xFFFFCA28), title = "0-60 Time", value = t.best0To60TimeSec?.let { String.format("%.1fs", it) } ?: "N/A")
                         }
                         Box(modifier = Modifier.weight(1f)) {
+                            StatCard(icon = Icons.Default.Speed, iconColor = Color(0xFFFFCA28), title = "0-100 Time", value = t.best0To100TimeSec?.let { String.format("%.1fs", it) } ?: "N/A")
+                        }
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+                        Box(modifier = Modifier.weight(1f)) {
                             StatCard(icon = Icons.Default.DirectionsCar, iconColor = Color(0xFFAB47BC), title = cornerSpeedLabel, value = String.format("%.1f", topCornerDisplay))
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            StatCard(icon = Icons.Default.Bolt, iconColor = Color(0xFF26A69A), title = "Peak G-Force", value = String.format("%.2f G", t.peakGForce))
                         }
                     }
 
@@ -244,13 +255,8 @@ fun TripDetailScreen(navController: NavController, tripId: String, viewModel: On
                         }
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            StatCard(icon = Icons.Default.Bolt, iconColor = Color(0xFF26A69A), title = "Peak G-Force", value = String.format("%.2f G", t.peakGForce))
-                        }
-                        Box(modifier = Modifier.weight(1f)) {
-                            StatCard(icon = Icons.Default.SwapHoriz, iconColor = Color(0xFF8D6E63), title = "Lane Changes", value = "${t.laneChanges}")
-                        }
+                    Row(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+                        StatCard(icon = Icons.Default.SwapHoriz, iconColor = Color(0xFF8D6E63), title = "Lane Changes", value = "${t.laneChanges}")
                     }
                 }
             }

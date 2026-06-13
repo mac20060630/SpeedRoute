@@ -33,6 +33,7 @@ data class TripStats(
     val totalAllTimeDurationSeconds: Long = 0,
     val allTimeDistanceKm: Float = 0f,
     
+    val best0To60TimeSec: Float? = null,
     val best0To100TimeSec: Float? = null,
     val leftTurns: Int = 0,
     val rightTurns: Int = 0,
@@ -62,6 +63,7 @@ object TripManager {
     private var currentStopStartTime: Long? = null
     
     private var speed0StartTime: Long? = null
+    private var speed60Reached: Boolean = false
 
     // Sensor State
     private var currentAccel: Float = 0f
@@ -98,6 +100,7 @@ object TripManager {
                 totalTrips = p.getInt("totalTrips", 0),
                 totalAllTimeDurationSeconds = p.getLong("totalAllTimeDuration", 0L),
                 allTimeDistanceKm = p.getFloat("allTimeDistance", 0f),
+                best0To60TimeSec = if (p.contains("best060")) p.getFloat("best060", 0f) else null,
                 best0To100TimeSec = if (p.contains("best0100")) p.getFloat("best0100", 0f) else null
             )
         }
@@ -110,6 +113,9 @@ object TripManager {
             putInt("totalTrips", current.totalTrips)
             putLong("totalAllTimeDuration", current.totalAllTimeDurationSeconds)
             putFloat("allTimeDistance", current.allTimeDistanceKm)
+            if (current.best0To60TimeSec != null) {
+                putFloat("best060", current.best0To60TimeSec)
+            }
             if (current.best0To100TimeSec != null) {
                 putFloat("best0100", current.best0To100TimeSec)
             }
@@ -123,6 +129,7 @@ object TripManager {
         lastLocation = null
         lastTime = startTime
         speed0StartTime = null
+        speed60Reached = false
         stoppedTimeAccumulator = 0
         isCurrentlyStopped = true
         currentStopStartTime = System.currentTimeMillis()
@@ -195,6 +202,7 @@ object TripManager {
             var newTopCorner = current.topCornerSpeedKmH
             var newDistance = current.totalDistanceKm
             var newAllTimeDist = current.allTimeDistanceKm
+            var newBest060 = current.best0To60TimeSec
             var newBest0100 = current.best0To100TimeSec
             var newStoppedTime = stoppedTimeAccumulator
             var newDuration = (currentTime - startTime) / 1000
@@ -230,16 +238,28 @@ object TripManager {
                 }
             }
             
-            // 0-100 logic
+            // 0-60 and 0-100 logic
             if (speedKmh < 1f) {
                 speed0StartTime = currentTime
-            } else if (speedKmh >= 100f && speed0StartTime != null) {
-                val timeTo100 = (currentTime - speed0StartTime!!) / 1000f
-                if (timeTo100 > 0.5f && (newBest0100 == null || timeTo100 < newBest0100)) {
-                    newBest0100 = timeTo100
-                    Log.d(TAG, "New best 0-100: ${newBest0100}s")
+                speed60Reached = false
+            } else if (speed0StartTime != null) {
+                val timeFrom0 = (currentTime - speed0StartTime!!) / 1000f
+                
+                if (speedKmh >= 60f && !speed60Reached) {
+                    speed60Reached = true
+                    if (timeFrom0 > 0.5f && (newBest060 == null || timeFrom0 < newBest060!!)) {
+                        newBest060 = timeFrom0
+                        Log.d(TAG, "New best 0-60: ${newBest060}s")
+                    }
                 }
-                speed0StartTime = null
+                
+                if (speedKmh >= 100f) {
+                    if (timeFrom0 > 0.5f && (newBest0100 == null || timeFrom0 < newBest0100!!)) {
+                        newBest0100 = timeFrom0
+                        Log.d(TAG, "New best 0-100: ${newBest0100}s")
+                    }
+                    speed0StartTime = null
+                }
             }
             
             previousSpeedKmH = speedKmh
@@ -272,6 +292,7 @@ object TripManager {
                 totalAllTimeDurationSeconds = current.totalAllTimeDurationSeconds + (currentTime - lastTime) / 1000,
                 stoppedTimeSeconds = stoppedTimeAccumulator / 1000,
                 totalStops = sessionTotalStops,
+                best0To60TimeSec = newBest060,
                 best0To100TimeSec = newBest0100,
                 currentLat = location.latitude,
                 currentLng = location.longitude,
