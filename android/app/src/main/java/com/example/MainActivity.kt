@@ -387,10 +387,29 @@ fun DetailedStatsScreen(
                 SmallFloatingActionButton(
                     onClick = { 
                         isAutoFollowing = true 
-                        if (stats.currentLat != null && stats.currentLng != null) {
-                            val geoPoint = GeoPoint(stats.currentLat!!, stats.currentLng!!)
-                            mapViewRef?.controller?.setZoom(16.0)
-                            mapViewRef?.controller?.animateTo(geoPoint)
+                        val fusedLocationClient = com.google.android.gms.location.LocationServices.getFusedLocationProviderClient(context)
+                        try {
+                            fusedLocationClient.getCurrentLocation(com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY, null)
+                                .addOnSuccessListener { location ->
+                                    if (location != null) {
+                                        val geoPoint = GeoPoint(location.latitude, location.longitude)
+                                        mapViewRef?.controller?.setZoom(16.0)
+                                        mapViewRef?.controller?.animateTo(geoPoint)
+                                        if (!stats.isTracking) {
+                                            TripManager.processLocation(location)
+                                        }
+                                    } else if (stats.currentLat != null && stats.currentLng != null) {
+                                        val geoPoint = GeoPoint(stats.currentLat!!, stats.currentLng!!)
+                                        mapViewRef?.controller?.setZoom(16.0)
+                                        mapViewRef?.controller?.animateTo(geoPoint)
+                                    }
+                                }
+                        } catch (e: SecurityException) {
+                            if (stats.currentLat != null && stats.currentLng != null) {
+                                val geoPoint = GeoPoint(stats.currentLat!!, stats.currentLng!!)
+                                mapViewRef?.controller?.setZoom(16.0)
+                                mapViewRef?.controller?.animateTo(geoPoint)
+                            }
                         }
                     },
                     containerColor = if (isAutoFollowing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
