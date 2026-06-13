@@ -28,13 +28,13 @@ jobs:
       - name: Build with Gradle
         run: |
           cd android
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease
 
       - name: Prepare APK for Release
         run: |
-          # The APK is generated in android/app/build/outputs/apk/debug/
+          # The APK is generated in android/app/build/outputs/apk/release/
           # Copy it to the workspace root for the release action
-          cp android/app/build/outputs/apk/debug/*.apk ./SpeedRoute-${{ github.ref_name }}.apk
+          cp android/app/build/outputs/apk/release/*.apk ./SpeedRoute-${{ github.ref_name }}.apk
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
