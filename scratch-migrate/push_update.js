@@ -12,9 +12,9 @@ async function run() {
   try {
     console.log("Pushing update notification to all users...");
     await db.collection("app_metadata").doc("version").set({
-        latest_version: "1.9",
+        latest_version: "1.9.1",
         minimum_version_code: 0, // Not forcing an update, just showing the notification
-        apk_url: "https://github.com/mac20060630/SpeedRoute/releases/latest"
+        apk_url: "https://github.com/mac20060630/SpeedRoute/releases/tag/v1.9.1"
     });
     console.log("Successfully pushed update notification for all users!");
     process.exit(0);
