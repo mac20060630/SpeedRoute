@@ -1,5 +1,15 @@
 package com.example.ui
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import androidx.core.app.NotificationCompat
+import com.example.R
+
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -198,8 +208,42 @@ class OnboardingViewModel : ViewModel() {
         }
     }
 
-    fun checkNotifications() {
+    fun dismissHighScore(context: Context) {
+        isHighScoreBeaten = false
+        val prefs = context.getSharedPreferences("SpeedRoutePrefs", Context.MODE_PRIVATE)
+        prefs.edit().putFloat("dismissed_highscore", globalMaxSpeed).apply()
+    }
+
+    private fun showUpdateNotification(context: Context, latestVersion: String, updateUrl: String) {
+        val channelId = "update_channel"
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(channelId, "App Updates", NotificationManager.IMPORTANCE_DEFAULT)
+            notificationManager.createNotificationChannel(channel)
+        }
+        
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(updateUrl)).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.mipmap.ic_launcher) // Fallback icon
+            .setContentTitle("New Update Available")
+            .setContentText("Version $latestVersion is available. Tap to download.")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+            
+        notificationManager.notify(2, notification)
+    }
+
+    fun checkNotifications(context: Context) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val prefs = context.getSharedPreferences("SpeedRoutePrefs", Context.MODE_PRIVATE)
+        
         viewModelScope.launch {
             try {
                 val db = FirebaseFirestore.getInstance()
@@ -211,12 +255,22 @@ class OnboardingViewModel : ViewModel() {
                 if (versionDoc.exists()) {
                     val latest = versionDoc.getString("latest_version") ?: currentVersion
                     latestVersion = latest
-                    isNewVersionAvailable = latest != currentVersion
+                    
                     updateApkUrl = versionDoc.getString("apk_url")
                         ?: ReleaseLinks.LATEST_RELEASE_URL
                     
                     val minRequiredCode = versionDoc.getLong("minimum_version_code") ?: 0L
                     isUpdateMandatory = currentVersionCode < minRequiredCode
+                    
+                    if (latest != currentVersion && !isUpdateMandatory) {
+                        val lastNotifiedVersion = prefs.getString("notified_version", "")
+                        if (latest != lastNotifiedVersion) {
+                            showUpdateNotification(context, latest, updateApkUrl)
+                            prefs.edit().putString("notified_version", latest).apply()
+                        }
+                    }
+                    
+                    isNewVersionAvailable = false // Not used in-app anymore
                 } else {
                     db.collection("app_metadata").document("version").set(hashMapOf(
                         "latest_version" to currentVersion,
@@ -229,12 +283,15 @@ class OnboardingViewModel : ViewModel() {
                     updateApkUrl = ReleaseLinks.LATEST_RELEASE_URL
                 }
 
+                val calendarYearWeek = java.util.Calendar.getInstance()
+                val weekId = "${calendarYearWeek.get(java.util.Calendar.YEAR)}_${calendarYearWeek.get(java.util.Calendar.WEEK_OF_YEAR)}"
+
                 // 2. Check Leaderboard
-                val userLeadDoc = db.collection("leaderboard").document(uid).get().await()
+                val userLeadDoc = db.collection("leaderboard_$weekId").document(uid).get().await()
                 val userSpeed = userLeadDoc.getDouble("ts")?.toFloat() ?: 0f
                 userTopSpeed = userSpeed
 
-                val maxLeadQuery = db.collection("leaderboard")
+                val maxLeadQuery = db.collection("leaderboard_$weekId")
                     .orderBy("ts", com.google.firebase.firestore.Query.Direction.DESCENDING)
                     .limit(1)
                     .get()
@@ -243,7 +300,8 @@ class OnboardingViewModel : ViewModel() {
                 if (!maxLeadQuery.isEmpty) {
                     val maxSpeed = maxLeadQuery.documents.first().getDouble("ts")?.toFloat() ?: 0f
                     globalMaxSpeed = maxSpeed
-                    isHighScoreBeaten = userSpeed > 0f && maxSpeed > userSpeed
+                    val dismissedSpeed = prefs.getFloat("dismissed_highscore", 0f)
+                    isHighScoreBeaten = userSpeed > 0f && maxSpeed > userSpeed && maxSpeed > dismissedSpeed
                 } else {
                     isHighScoreBeaten = false
                 }

@@ -241,11 +241,12 @@ fun SpeedometerScreen(
 
     val permissionsState = rememberMultiplePermissionsState(permissions = permissions)
     
+    val context = LocalContext.current
     LaunchedEffect(Unit) {
         if (!permissionsState.allPermissionsGranted) {
             permissionsState.launchMultiplePermissionRequest()
         }
-        viewModel.checkNotifications()
+        viewModel.checkNotifications(context)
     }
 
     val stats by TripManager.stats.collectAsState()
@@ -518,53 +519,6 @@ fun NotificationsDialog(
             ) {
                 val notificationsList = mutableListOf<@Composable () -> Unit>()
 
-                if (viewModel.isNewVersionAvailable) {
-                    notificationsList.add {
-                        val releaseUrl = resolveReleaseUrl(viewModel.updateApkUrl)
-                        val releaseButtonLabel = if (releaseUrl.endsWith(".apk", ignoreCase = true)) {
-                            "Download"
-                        } else {
-                            "View Update"
-                        }
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { openReleaseNotification(context, releaseUrl) }
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text("New Version Released", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, fontSize = 14.sp)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text("Update to Speed Route V${viewModel.latestVersion} is now available with new features and stability fixes.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Row(
-                                    horizontalArrangement = Arrangement.End,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    TextButton(
-                                        onClick = { viewModel.isNewVersionAvailable = false },
-                                        modifier = Modifier.height(36.dp)
-                                    ) {
-                                        Text("Dismiss", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Button(
-                                        onClick = {
-                                            openReleaseNotification(context, releaseUrl)
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                        shape = RoundedCornerShape(8.dp),
-                                        modifier = Modifier.height(36.dp)
-                                    ) {
-                                        Text(releaseButtonLabel, fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimary)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
                 if (viewModel.isHighScoreBeaten) {
                     notificationsList.add {
                         Card(
@@ -582,7 +536,7 @@ fun NotificationsDialog(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     TextButton(
-                                        onClick = { viewModel.isHighScoreBeaten = false },
+                                        onClick = { viewModel.dismissHighScore(context) },
                                         modifier = Modifier.height(36.dp)
                                     ) {
                                         Text("Dismiss", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)

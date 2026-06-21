@@ -34,8 +34,13 @@ fun LeaderboardScreen(navController: NavController, showBackButton: Boolean = fa
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
+        val calendar = java.util.Calendar.getInstance()
+        val year = calendar.get(java.util.Calendar.YEAR)
+        val week = calendar.get(java.util.Calendar.WEEK_OF_YEAR)
+        val weekId = "${year}_${week}"
+        
         val db = FirebaseFirestore.getInstance()
-        val listenerRegistration = db.collection("leaderboard")
+        val listenerRegistration = db.collection("leaderboard_$weekId")
             .orderBy("ts", Query.Direction.DESCENDING)
             .limit(50)
             .addSnapshotListener { snapshot, error ->
@@ -65,7 +70,7 @@ fun LeaderboardScreen(navController: NavController, showBackButton: Boolean = fa
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Top Speeds Leaderboard", color = MaterialTheme.colorScheme.onBackground) },
+                title = { Text("Weekly Top Speeds", color = MaterialTheme.colorScheme.onBackground) },
                 navigationIcon = {
                     if (showBackButton) {
                         IconButton(onClick = { navController.popBackStack() }) {

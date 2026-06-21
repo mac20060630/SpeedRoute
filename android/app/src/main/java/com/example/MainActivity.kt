@@ -55,7 +55,7 @@ import com.example.location.AutoTrackingManager
 class MainActivity : ComponentActivity() {
     private val onboardingViewModel: com.example.ui.OnboardingViewModel by viewModels()
     private val UPDATE_REQUEST_CODE = 9001
-    private var allTimeTopSpeedCache = 0f
+    private var weeklyTopSpeedCache = 0f
 
     private fun checkForPlayUpdate() {
         val appUpdateManager = com.google.android.play.core.appupdate.AppUpdateManagerFactory.create(this)
@@ -112,8 +112,17 @@ class MainActivity : ComponentActivity() {
 
         lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             val allTrips = com.example.utils.LocalTripStorage.loadAllTrips(this@MainActivity)
-            val maxSpeed = allTrips.maxOfOrNull { it.topSpeedKmH }?.toFloat() ?: 0f
-            allTimeTopSpeedCache = maxSpeed
+            
+            val calendar = java.util.Calendar.getInstance()
+            calendar.set(java.util.Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
+            calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+            calendar.set(java.util.Calendar.MINUTE, 0)
+            calendar.set(java.util.Calendar.SECOND, 0)
+            calendar.set(java.util.Calendar.MILLISECOND, 0)
+            val startOfWeek = calendar.timeInMillis
+            
+            val maxWeeklySpeed = allTrips.filter { it.timestamp >= startOfWeek }.maxOfOrNull { it.topSpeedKmH }?.toFloat() ?: 0f
+            weeklyTopSpeedCache = maxWeeklySpeed
             
             // Re-upload max speed to leaderboard immediately to restore any lost record
             var retries = 0
@@ -124,16 +133,19 @@ class MainActivity : ComponentActivity() {
             
             val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
             val user = auth.currentUser
-            if (user != null && onboardingViewModel.username.isNotBlank() && allTimeTopSpeedCache > 0f) {
+            if (user != null && onboardingViewModel.username.isNotBlank() && weeklyTopSpeedCache > 0f) {
+                 val calendarYearWeek = java.util.Calendar.getInstance()
+                 val weekId = "${calendarYearWeek.get(java.util.Calendar.YEAR)}_${calendarYearWeek.get(java.util.Calendar.WEEK_OF_YEAR)}"
+                 
                  val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
                  val userRecord = hashMapOf(
                      "u" to onboardingViewModel.username,
                      "c" to onboardingViewModel.country.name,
                      "v" to onboardingViewModel.vehicleBrand,
-                     "ts" to allTimeTopSpeedCache,
+                     "ts" to weeklyTopSpeedCache,
                      "t" to System.currentTimeMillis()
                  )
-                 db.collection("leaderboard").document(user.uid)
+                 db.collection("leaderboard_$weekId").document(user.uid)
                      .set(userRecord, com.google.firebase.firestore.SetOptions.merge())
             }
         }
@@ -144,21 +156,24 @@ class MainActivity : ComponentActivity() {
                 .distinctUntilChanged()
                 .collect { topSpeed ->
                     if (TripManager.stats.value.isTracking && topSpeed > 0) {
-                        if (topSpeed > allTimeTopSpeedCache) {
-                            allTimeTopSpeedCache = topSpeed
+                        if (topSpeed > weeklyTopSpeedCache) {
+                            weeklyTopSpeedCache = topSpeed
                         }
                         val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
                         val user = auth.currentUser
                         if (user != null && onboardingViewModel.username.isNotBlank()) {
+                            val calendarYearWeek = java.util.Calendar.getInstance()
+                            val weekId = "${calendarYearWeek.get(java.util.Calendar.YEAR)}_${calendarYearWeek.get(java.util.Calendar.WEEK_OF_YEAR)}"
+                            
                             val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
                             val userRecord = hashMapOf(
                                 "u" to onboardingViewModel.username,
                                 "c" to onboardingViewModel.country.name,
                                 "v" to onboardingViewModel.vehicleBrand,
-                                "ts" to allTimeTopSpeedCache,
+                                "ts" to weeklyTopSpeedCache,
                                 "t" to System.currentTimeMillis()
                             )
-                            db.collection("leaderboard").document(user.uid)
+                            db.collection("leaderboard_$weekId").document(user.uid)
                                 .set(userRecord, com.google.firebase.firestore.SetOptions.merge())
                         }
                     }
@@ -243,8 +258,11 @@ class MainActivity : ComponentActivity() {
             
             // Save to Leaderboard
             if (viewModel.username.isNotBlank()) {
-                val finalMaxSpeed = maxOf(stats.topSpeedKmH, allTimeTopSpeedCache)
-                allTimeTopSpeedCache = finalMaxSpeed
+                val calendarYearWeek = java.util.Calendar.getInstance()
+                val weekId = "${calendarYearWeek.get(java.util.Calendar.YEAR)}_${calendarYearWeek.get(java.util.Calendar.WEEK_OF_YEAR)}"
+                
+                val finalMaxSpeed = maxOf(stats.topSpeedKmH, weeklyTopSpeedCache)
+                weeklyTopSpeedCache = finalMaxSpeed
                 val userRecord = hashMapOf(
                     "u" to viewModel.username,
                     "c" to viewModel.country.name,
@@ -252,7 +270,7 @@ class MainActivity : ComponentActivity() {
                     "ts" to finalMaxSpeed,
                     "t" to System.currentTimeMillis()
                 )
-                db.collection("leaderboard")
+                db.collection("leaderboard_$weekId")
                     .document(user.uid)
                     .set(userRecord, com.google.firebase.firestore.SetOptions.merge())
             }

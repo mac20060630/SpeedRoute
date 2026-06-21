@@ -61,6 +61,7 @@ object TripManager {
     private var stoppedTimeAccumulator: Long = 0
     private var isCurrentlyStopped = true
     private var currentStopStartTime: Long? = null
+    private var speedBelow5StartTime: Long? = null
     
     private var speed0StartTime: Long? = null
     private var speed60Reached: Boolean = false
@@ -133,6 +134,7 @@ object TripManager {
         stoppedTimeAccumulator = 0
         isCurrentlyStopped = true
         currentStopStartTime = System.currentTimeMillis()
+        speedBelow5StartTime = System.currentTimeMillis()
         sessionTotalStops = 0
         previousSpeedKmH = 0f
         lastSpeedTime = 0
@@ -227,6 +229,15 @@ object TripManager {
                 isCurrentlyStopped = false
                 currentStopStartTime = null
             }
+            
+            if (speedKmh < 5.0f) {
+                if (speedBelow5StartTime == null) {
+                    speedBelow5StartTime = currentTime
+                }
+            } else {
+                speedBelow5StartTime = null
+            }
+            
             stoppedTimeAccumulator = newStoppedTime
 
             if (lastLocation != null) {
@@ -304,11 +315,11 @@ object TripManager {
         lastLocation = location
         lastTime = currentTime
         
-        // Auto-stop tracking if stationary for more than 30 minutes (1,800,000 ms)
-        if (isCurrentlyStopped && currentStopStartTime != null) {
-            val idleDuration = currentTime - currentStopStartTime!!
+        // Auto-stop tracking if speed < 5km/h for more than 30 minutes (1,800,000 ms)
+        if (speedBelow5StartTime != null) {
+            val idleDuration = currentTime - speedBelow5StartTime!!
             if (idleDuration > 1800000) {
-                Log.d(TAG, "User has been idle for > 30 mins. Auto-stopping tracking.")
+                Log.d(TAG, "User has been moving < 5km/h for > 30 mins. Auto-stopping tracking.")
                 // Send intent to LocationTrackerService to stop safely (which will also save the trip to local storage)
                 // We use a Coroutine so we don't hold up the location processing
                 kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.Main) {
