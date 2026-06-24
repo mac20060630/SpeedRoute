@@ -248,39 +248,59 @@ class OnboardingViewModel : ViewModel() {
             try {
                 val db = FirebaseFirestore.getInstance()
                 
-                // 1. Check Version (simulate/get from app_metadata/version)
+                // 1. Check Mandatory Update from Firestore
                 val versionDoc = db.collection("app_metadata").document("version").get().await()
                 val currentVersion = com.example.BuildConfig.VERSION_NAME
                 val currentVersionCode = com.example.BuildConfig.VERSION_CODE.toLong()
+                
                 if (versionDoc.exists()) {
-                    val latest = versionDoc.getString("latest_version") ?: currentVersion
-                    latestVersion = latest
-                    
-                    updateApkUrl = versionDoc.getString("apk_url")
-                        ?: ReleaseLinks.LATEST_RELEASE_URL
-                    
                     val minRequiredCode = versionDoc.getLong("minimum_version_code") ?: 0L
                     isUpdateMandatory = currentVersionCode < minRequiredCode
-                    
-                    if (latest != currentVersion && !isUpdateMandatory) {
-                        val lastNotifiedVersion = prefs.getString("notified_version", "")
-                        if (latest != lastNotifiedVersion) {
-                            showUpdateNotification(context, latest, updateApkUrl)
-                            prefs.edit().putString("notified_version", latest).apply()
+                } else {
+                    isUpdateMandatory = false
+                }
+
+                // 2. Fetch Latest Version from GitHub
+                var githubLatestVersion = currentVersion
+                var githubApkUrl = ReleaseLinks.LATEST_RELEASE_URL
+                try {
+                    val client = okhttp3.OkHttpClient()
+                    val request = okhttp3.Request.Builder()
+                        .url("https://api.github.com/repos/mac20060630/SpeedRoute/releases/latest")
+                        .header("User-Agent", "SpeedRoute-App")
+                        .build()
+
+                    val response = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        client.newCall(request).execute()
+                    }
+                    if (response.isSuccessful) {
+                        val bodyString = response.body?.string()
+                        if (!bodyString.isNullOrEmpty()) {
+                            val json = org.json.JSONObject(bodyString)
+                            val tagName = json.optString("tag_name", "")
+                            if (tagName.isNotEmpty()) {
+                                githubLatestVersion = tagName.removePrefix("v")
+                            }
+                            val htmlUrl = json.optString("html_url", "")
+                            if (htmlUrl.isNotEmpty()) {
+                                githubApkUrl = htmlUrl
+                            }
                         }
                     }
-                    
-                    isNewVersionAvailable = false // Not used in-app anymore
-                } else {
-                    db.collection("app_metadata").document("version").set(hashMapOf(
-                        "latest_version" to currentVersion,
-                        "minimum_version_code" to currentVersionCode,
-                        "apk_url" to ReleaseLinks.LATEST_RELEASE_URL
-                    ))
-                    latestVersion = currentVersion
-                    isNewVersionAvailable = false
-                    isUpdateMandatory = false
-                    updateApkUrl = ReleaseLinks.LATEST_RELEASE_URL
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error fetching GitHub release", e)
+                }
+
+                latestVersion = githubLatestVersion
+                updateApkUrl = githubApkUrl
+
+                // Show notification if there's a newer version (and not mandatory)
+                if (githubLatestVersion != currentVersion && !isUpdateMandatory) {
+                    val lastNotifiedVersion = prefs.getString("notified_version", "")
+                    if (githubLatestVersion != lastNotifiedVersion) {
+                        showUpdateNotification(context, githubLatestVersion, githubApkUrl)
+                        prefs.edit().putString("notified_version", githubLatestVersion).apply()
+                    }
                 }
 
                 val calendarYearWeek = java.util.Calendar.getInstance()
