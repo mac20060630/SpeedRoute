@@ -258,6 +258,13 @@ fun LocationPermissionScreen(navController: NavController, viewModel: Onboarding
                 navController.navigate("vehicle_type")
             }
         })
+        Spacer(modifier = Modifier.height(16.dp))
+        androidx.compose.material3.TextButton(
+            onClick = { navController.navigate("vehicle_type") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+        ) {
+            Text("Skip for now", color = Color.Gray, fontSize = 16.sp)
+        }
     }
 }
 

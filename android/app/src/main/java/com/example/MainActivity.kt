@@ -326,11 +326,7 @@ fun DetailedStatsScreen(
     }
 
     val permissionsState = rememberMultiplePermissionsState(permissions = permissions)
-    
-    LaunchedEffect(Unit) {
-        permissionsState.launchMultiplePermissionRequest()
-    }
-    
+
     val stats by TripManager.stats.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
 

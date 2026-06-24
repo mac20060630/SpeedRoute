@@ -78,32 +78,6 @@ fun MainScreen(
         return
     }
 
-    val isLocationOn = isLocationEnabled()
-    if (!isLocationOn) {
-        val context = LocalContext.current
-        Box(
-            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Default.LocationOff, contentDescription = "Location Disabled", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.error)
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Location is Off", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Please enable location services in your device settings to continue using the app.", textAlign = androidx.compose.ui.text.style.TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(modifier = Modifier.height(32.dp))
-                Button(
-                    onClick = { 
-                        context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-                    },
-                    modifier = Modifier.fillMaxWidth().height(50.dp)
-                ) {
-                    Text("Turn On Location")
-                }
-            }
-        }
-        return
-    }
 
     val bottomNavController = rememberNavController()
     
