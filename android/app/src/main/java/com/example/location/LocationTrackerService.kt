@@ -104,7 +104,7 @@ class LocationTrackerService : Service(), SensorEventListener {
             ACTION_START -> startTracking(isAuto = false)
             ACTION_STOP -> stopTracking()
             ACTION_START_AUTO -> startTracking(isAuto = true)
-            ACTION_STOP_AUTO -> stopTracking()
+            ACTION_STOP_AUTO -> stopTrackingAuto()
         }
         return START_STICKY
     }
@@ -177,6 +177,90 @@ class LocationTrackerService : Service(), SensorEventListener {
             Log.d(TAG, "Tracking stopped")
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping tracking", e)
+        }
+    }
+
+    /**
+     * Called when the 30-minute idle auto-stop triggers.
+     * Saves the trip to local storage and Firestore directly (no broadcast needed),
+     * then stops the foreground service cleanly.
+     */
+    private fun stopTrackingAuto() {
+        Log.d(TAG, "Auto-stopping tracking (idle timeout). Saving trip...")
+        try {
+            fusedLocationClient.removeLocationUpdates(locationCallback)
+            sensorManager.unregisterListener(this)
+
+            val stats = TripManager.stats.value
+
+            // Only save if the trip has meaningful data
+            if (stats.isTracking && stats.totalDistanceKm > 0.05f) {
+                val tripId = java.util.UUID.randomUUID().toString()
+                val trip = com.example.models.Trip(
+                    id = tripId,
+                    timestamp = System.currentTimeMillis(),
+                    durationSeconds = stats.durationSeconds,
+                    totalDistanceKm = stats.totalDistanceKm.toDouble(),
+                    topSpeedKmH = stats.topSpeedKmH.toDouble(),
+                    best0To60TimeSec = stats.best0To60TimeSec?.toDouble(),
+                    best0To100TimeSec = stats.best0To100TimeSec?.toDouble(),
+                    leftTurns = stats.leftTurns,
+                    rightTurns = stats.rightTurns,
+                    hardBrakes = stats.brakeEvents,
+                    stoppedTimeSeconds = stats.stoppedTimeSeconds,
+                    maxAcceleration = stats.maxAcceleration.toDouble(),
+                    maxDeceleration = stats.maxDeceleration.toDouble(),
+                    peakGForce = stats.peakGForce.toDouble(),
+                    topCornerSpeedKmH = stats.topCornerSpeedKmH.toDouble(),
+                    totalStops = stats.totalStops,
+                    laneChanges = stats.laneChanges,
+                    routePoints = stats.routePoints
+                )
+
+                // Save locally — always works, even when app is killed
+                com.example.utils.LocalTripStorage.saveTrip(applicationContext, trip)
+                Log.d(TAG, "Auto-stopped trip saved locally: id=$tripId, dist=${stats.totalDistanceKm} km")
+
+                // Save to Firestore leaderboard if user is signed in
+                val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+                val user = auth.currentUser
+                if (user != null && stats.topSpeedKmH > 0f) {
+                    val calendarYearWeek = java.util.Calendar.getInstance()
+                    val weekId = "${calendarYearWeek.get(java.util.Calendar.YEAR)}_" +
+                                 "${calendarYearWeek.get(java.util.Calendar.WEEK_OF_YEAR)}"
+                    val prefs = getSharedPreferences("SpeedRouteProfile", Context.MODE_PRIVATE)
+                    val username = prefs.getString("username", "") ?: ""
+                    val country  = prefs.getString("country", "") ?: ""
+                    val vehicle  = prefs.getString("vehicleBrand", "") ?: ""
+                    if (username.isNotBlank()) {
+                        val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                        val userRecord = hashMapOf(
+                            "u" to username,
+                            "c" to country,
+                            "v" to vehicle,
+                            "ts" to stats.topSpeedKmH,
+                            "t" to System.currentTimeMillis()
+                        )
+                        db.collection("leaderboard_$weekId")
+                            .document(user.uid)
+                            .set(userRecord, com.google.firebase.firestore.SetOptions.merge())
+                        Log.d(TAG, "Auto-stopped trip leaderboard updated: weekId=$weekId, speed=${stats.topSpeedKmH} km/h")
+                    }
+                }
+            } else {
+                Log.d(TAG, "Auto-stop: trip too short to save (dist=${stats.totalDistanceKm} km). Discarding.")
+            }
+
+            TripManager.stopTracking()
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            Log.d(TAG, "Auto-stop complete.")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during auto-stop", e)
+            // Still try to stop cleanly even if save failed
+            try { TripManager.stopTracking() } catch (_: Exception) {}
+            try { stopForeground(STOP_FOREGROUND_REMOVE) } catch (_: Exception) {}
+            try { stopSelf() } catch (_: Exception) {}
         }
     }
 

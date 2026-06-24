@@ -326,11 +326,28 @@ class OnboardingViewModel : ViewModel() {
                     vehicleType = doc.getString("vType") ?: vehicleType
                     vehicleBrand = doc.getString("vBrand") ?: vehicleBrand
                     vehicleModel = doc.getString("vModel") ?: vehicleModel
+                    val countryName = doc.getString("country") ?: ""
+                    if (countryName.isNotBlank()) {
+                        country = Countries.list.firstOrNull { it.name == countryName } ?: country
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
+    }
+
+    /**
+     * Persists the current user profile to SharedPreferences so that background
+     * services (e.g. LocationTrackerService) can read it without the ViewModel.
+     */
+    fun cacheProfileToPrefs(context: Context) {
+        val prefs = context.getSharedPreferences("SpeedRouteProfile", Context.MODE_PRIVATE)
+        prefs.edit()
+            .putString("username", username)
+            .putString("country", country.name)
+            .putString("vehicleBrand", vehicleBrand)
+            .apply()
     }
 
     fun saveProfilePicture(base64: String, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {

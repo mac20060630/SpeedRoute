@@ -134,7 +134,7 @@ object TripManager {
         stoppedTimeAccumulator = 0
         isCurrentlyStopped = true
         currentStopStartTime = System.currentTimeMillis()
-        speedBelow5StartTime = System.currentTimeMillis()
+        speedBelow5StartTime = null  // Will be set when speed first drops below 5 km/h
         sessionTotalStops = 0
         previousSpeedKmH = 0f
         lastSpeedTime = 0
@@ -316,19 +316,23 @@ object TripManager {
         lastTime = currentTime
         
         // Auto-stop tracking if speed < 5km/h for more than 30 minutes (1,800,000 ms)
-        if (speedBelow5StartTime != null) {
+        if (_stats.value.isTracking && speedBelow5StartTime != null) {
             val idleDuration = currentTime - speedBelow5StartTime!!
             if (idleDuration > 1800000) {
                 Log.d(TAG, "User has been moving < 5km/h for > 30 mins. Auto-stopping tracking.")
-                // Send intent to LocationTrackerService to stop safely (which will also save the trip to local storage)
-                // We use a Coroutine so we don't hold up the location processing
+                // Reset the timer immediately to prevent re-triggering on the next location update
+                speedBelow5StartTime = null
+                // Send ACTION_STOP_AUTO to LocationTrackerService so it can save the trip before stopping
                 kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.Main) {
-                    stopTracking()
                     appContext?.let { ctx ->
                         val serviceIntent = android.content.Intent(ctx, com.example.location.LocationTrackerService::class.java).apply {
-                            action = com.example.location.LocationTrackerService.ACTION_STOP
+                            action = com.example.location.LocationTrackerService.ACTION_STOP_AUTO
                         }
-                        ctx.startService(serviceIntent)
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                            ctx.startForegroundService(serviceIntent)
+                        } else {
+                            ctx.startService(serviceIntent)
+                        }
                     }
                 }
             }

@@ -57,6 +57,7 @@ class MainActivity : ComponentActivity() {
     private val UPDATE_REQUEST_CODE = 9001
     private var weeklyTopSpeedCache = 0f
 
+
     private fun checkForPlayUpdate() {
         val appUpdateManager = com.google.android.play.core.appupdate.AppUpdateManagerFactory.create(this)
         val appUpdateInfoTask = appUpdateManager.appUpdateInfo
@@ -78,6 +79,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
 
     override fun onResume() {
         super.onResume()
@@ -189,7 +191,12 @@ class MainActivity : ComponentActivity() {
                     val startDest = if (auth.currentUser != null) "main" else "welcome"
                     
                     if (auth.currentUser != null) {
-                        LaunchedEffect(Unit) { onboardingViewModel.fetchUserProfile() }
+                        LaunchedEffect(Unit) {
+                            onboardingViewModel.fetchUserProfile()
+                            // Cache profile to SharedPreferences so LocationTrackerService can read it
+                            // during auto-stop even when the app is in the background or killed
+                            onboardingViewModel.cacheProfileToPrefs(this@MainActivity)
+                        }
                     }
                     
                     NavHost(
