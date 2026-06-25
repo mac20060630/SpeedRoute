@@ -20,7 +20,7 @@
 ---
 
 <p align="center">
-  SpeedRoute is designed to help you rank, plan, and navigate your daily commutes and trips efficiently using cutting-edge real-time tracking and open-source intelligence.
+  <strong>SpeedRoute (also known as TripRank)</strong> is designed to help you rank, plan, and navigate your daily commutes and trips efficiently. As an intelligent, AI-powered travel planner and navigation assistant for Android, it uses cutting-edge real-time tracking, Google Gemini AI, and OpenStreetMap (OSM) intelligence to optimize your journeys.
 </p>
 
 ---
@@ -37,7 +37,7 @@
 
 ## ✨ Key Features
 
-Navigating daily traffic and planning trips can be overwhelming. SpeedRoute solves this by providing a smart mapping interface powered by OpenStreetMap that goes beyond simple directions.
+Navigating daily traffic and planning trips can be overwhelming. SpeedRoute (TripRank) solves this by providing a smart Android mapping interface powered by OpenStreetMap that goes beyond simple GPS directions.
 
 - 🧠 **Smart Planning:** Helps you evaluate and rank the best routes or destinations.
 - ⚡ **Real-Time Context:** Keeps you informed about speed cameras, traffic, and local travel constraints.
